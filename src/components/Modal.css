@@ -1,0 +1,133 @@
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: flex-end;
+}
+
+.modal-sheet {
+  width: 100%; max-width: 480px; margin: 0 auto;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  box-shadow: var(--shadow-lg);
+  max-height: 90vh;
+  display: flex; flex-direction: column;
+}
+
+.modal-drag-handle {
+  width: 36px; height: 4px;
+  background: var(--border-hover);
+  border-radius: 2px;
+  margin: 12px auto 0;
+  flex-shrink: 0;
+}
+
+.modal-header {
+  padding: 16px 20px 12px;
+  display: flex; align-items: flex-start; gap: 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 700;
+  flex: 1;
+}
+.modal-coords {
+  font-size: 11px; color: var(--text-dim);
+  font-family: monospace; margin-top: 2px;
+  width: 100%; order: 3;
+}
+.modal-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 18px;
+  padding: 0; line-height: 1; flex-shrink: 0;
+  transition: color 0.15s;
+}
+.modal-close:hover { color: var(--text); }
+
+.modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex; flex-direction: column; gap: 16px;
+}
+
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--text-muted);
+  font-family: var(--font-display);
+}
+.label-hint { text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+.form-group input, .form-group textarea {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+.form-group input:focus, .form-group textarea:focus {
+  border-color: var(--accent3);
+  box-shadow: 0 0 0 3px rgba(124,106,247,0.15);
+}
+.form-group input.error { border-color: var(--danger); }
+.form-group input::placeholder, .form-group textarea::placeholder {
+  color: var(--text-dim);
+}
+.form-error { font-size: 12px; color: var(--danger); }
+
+.category-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+}
+.cat-btn {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 4px;
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: all 0.15s;
+  color: var(--text-muted);
+}
+.cat-btn:hover { border-color: var(--border-hover); background: var(--surface3); }
+.cat-btn.active {
+  border-color: var(--cat);
+  background: color-mix(in srgb, var(--cat) 12%, var(--surface2));
+  color: var(--cat);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cat) 20%, transparent);
+}
+.cat-emoji { font-size: 20px; line-height: 1; }
+.cat-label { font-size: 9px; font-weight: 600; text-align: center; letter-spacing: 0.03em; }
+
+.modal-footer {
+  padding: 12px 20px 20px;
+  display: flex; gap: 10px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.btn-cancel {
+  flex: 1; padding: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-muted);
+  font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-cancel:hover { background: var(--surface3); color: var(--text); }
+.btn-save {
+  flex: 2; padding: 12px;
+  background: var(--accent); border: none;
+  border-radius: var(--radius-sm); color: #0f0f1a;
+  font-family: var(--font-display); font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all 0.15s; letter-spacing: 0.02em;
+}
+.btn-save:hover { background: #f0d060; transform: translateY(-1px); }
+.btn-save:active { transform: translateY(0); }

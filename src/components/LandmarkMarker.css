@@ -1,0 +1,60 @@
+/* ── Marker pin ── */
+.marker-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.55));
+  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+.marker-wrap:hover { transform: translateY(-3px) scale(1.08); }
+.marker-wrap.selected { transform: translateY(-4px) scale(1.14); filter: drop-shadow(0 6px 14px rgba(0,0,0,0.7)); }
+
+.marker-bubble {
+  width: 46px; height: 46px;
+  border-radius: 50% 50% 50% 4px;
+  display: flex; align-items: center; justify-content: center;
+  border: 3px solid rgba(255,255,255,0.25);
+  position: relative;
+  transition: all 0.2s;
+}
+.marker-wrap.selected .marker-bubble {
+  width: 54px; height: 54px;
+  border-color: rgba(255,255,255,0.5);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.2);
+}
+
+.marker-glyph {
+  font-size: 22px;
+  line-height: 1;
+  /* render emoji as image to avoid OS font variation issues */
+  font-family: "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;
+}
+.marker-wrap.selected .marker-glyph { font-size: 26px; }
+
+.marker-stem {
+  width: 3px; height: 8px;
+  background: rgba(255,255,255,0.4);
+  border-radius: 0 0 2px 2px;
+}
+
+.marker-label {
+  margin-top: 3px;
+  background: rgba(15,15,26,0.88);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-size: 10px; font-weight: 700;
+  font-family: 'Syne', sans-serif;
+  color: #fff;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden; text-overflow: ellipsis;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(4px);
+}
+.marker-wrap.selected .marker-label {
+  background: rgba(232,197,71,0.92);
+  color: #0f0f1a;
+  border-color: transparent;
+}
