@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
-import logoCoyoacan from '../assets/logoCoyoacan.png'
+import logoCoyoacan from '../assets/logocoyoacan.png'
 
 export default function IntroAnimation({ onComplete }) {
   const overlayRef = useRef()
