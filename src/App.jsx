@@ -3,8 +3,11 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Polyline, useMap, Marker } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { gsap } from 'gsap'
 import { useLandmarks } from './hooks/useLandmarks'
 import { loadLandmarks } from './utils/storage'
+import { loadNotifications, isExpired } from './utils/notifications'
+import IntroAnimation from './components/IntroAnimation'
 import LandmarkMarker from './components/LandmarkMarker'
 import Sidebar from './components/Sidebar'
 import DirectionsPanel from './components/DirectionsPanel'
@@ -62,9 +65,37 @@ const userDotIcon = L.divIcon({
   className: '', iconSize: [20, 20], iconAnchor: [10, 10]
 })
 
+function calculateBearing(from, to) {
+  const lat1 = from[0] * Math.PI / 180
+  const lat2 = to[0] * Math.PI / 180
+  const dLng = (to[1] - from[1]) * Math.PI / 180
+  const y = Math.sin(dLng) * Math.cos(lat2)
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng)
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360
+}
+
+function NavigationFollower({ userPos, isNavigating }) {
+  const map = useMap()
+  const initializedRef = useRef(false)
+
+  useEffect(() => {
+    if (!isNavigating) { initializedRef.current = false; return }
+    if (!userPos) return
+    if (!initializedRef.current) {
+      map.flyTo(userPos, Math.max(map.getZoom(), 17), { duration: 1.2 })
+      initializedRef.current = true
+    } else {
+      map.panTo(userPos, { animate: true, duration: 0.8 })
+    }
+  }, [userPos, isNavigating])
+
+  return null
+}
+
 export default function App() {
   const { landmarks } = useLandmarks()
   const [landmarksState, setLandmarksState] = useState(landmarks || [])
+  const [showIntro, setShowIntro] = useState(true)
   const [selectedLandmark, setSelectedLandmark] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [flyTarget, setFlyTarget] = useState(null)
@@ -73,6 +104,11 @@ export default function App() {
   const [routeCoords, setRouteCoords] = useState(null)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [language, setLanguage] = useState('es')
+  const [eventLandmarkIds, setEventLandmarkIds] = useState(new Set())
+  const [isNavigating, setIsNavigating] = useState(false)
+  const [heading, setHeading] = useState(null)
+  const prevUserPosRef = useRef(null)
+  const topbarRef = useRef(null)
 
   const t = translations[language]
 
@@ -95,14 +131,30 @@ export default function App() {
   }, [isDarkMode])
 
   useEffect(() => {
+    const updateEvents = () => {
+      const notifs = loadNotifications()
+      const ids = new Set(notifs.filter(n => !isExpired(n) && n.landmarkId).map(n => n.landmarkId))
+      setEventLandmarkIds(ids)
+    }
+    updateEvents()
+    const interval = setInterval(updateEvents, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
     if (!navigator.geolocation) {
       console.error('Geolocation not supported')
       return
     }
     const id = navigator.geolocation.watchPosition(
       pos => {
-        console.log('Location updated:', [pos.coords.latitude, pos.coords.longitude])
-        setUserPos([pos.coords.latitude, pos.coords.longitude])
+        const newPos = [pos.coords.latitude, pos.coords.longitude]
+        if (prevUserPosRef.current) {
+          const h = calculateBearing(prevUserPosRef.current, newPos)
+          setHeading(h)
+        }
+        prevUserPosRef.current = newPos
+        setUserPos(newPos)
       },
       err => {
         console.error('Geolocation error:', err.message)
@@ -141,120 +193,152 @@ export default function App() {
   const handleCloseDirections = useCallback(() => {
     setDirectionsTo(null)
     setRouteCoords(null)
+    setIsNavigating(false)
   }, [])
 
-  const fromCoords = useMemo(() => 
+  const userIcon = useMemo(() => {
+    if (isNavigating) {
+      const angle = heading ?? 0
+      return L.divIcon({
+        html: `<div class="user-nav-arrow" style="transform:rotate(${angle}deg)">
+          <svg width="22" height="28" viewBox="0 0 22 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11 2L20 24L11 18L2 24L11 2Z" fill="#4fc3f7" stroke="white" stroke-width="2.5" stroke-linejoin="round"/>
+          </svg>
+        </div>`,
+        className: '',
+        iconSize: [22, 28],
+        iconAnchor: [11, 14],
+      })
+    }
+    return userDotIcon
+  }, [isNavigating, heading])
+
+  const fromCoords = useMemo(() =>
     userPos ? { lat: userPos[0], lng: userPos[1] } : null
   , [userPos])
+
+  useEffect(() => {
+    if (!showIntro && topbarRef.current) {
+      gsap.fromTo(
+        Array.from(topbarRef.current.children),
+        { opacity: 0, y: -10 },
+        { opacity: 1, y: 0, duration: 0.5, stagger: 0.06, ease: 'power3.out' }
+      )
+    }
+  }, [showIntro])
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
       <Routes>
+        
         <Route path="/" element={
-          <div className="app">
-            <header className="topbar">
-              <button className="topbar-menu" onClick={() => setSidebarOpen(true)}>
-                <span /><span /><span />
-              </button>
-              <div className="topbar-brand">
-                <img src={logoCoyoacan} alt="Coyoacán" className="topbar-logo-img" />
-              </div>
-              <select 
-                className="topbar-lang-select" 
-                value={language} 
-                onChange={(e) => setLanguage(e.target.value)}
-                title="Select language"
-              >
-                <option value="en">EN</option>
-                <option value="es">ES</option>
-              </select>
-              <InboxPanel 
-                landmarks={landmarksState}
-                onFlyTo={(landmarkId) => { 
-                  const lm = landmarksState.find(l => l.id === landmarkId); 
-                  if (lm) handleSelect(lm); 
-                  setSidebarOpen(false); 
-                }}
-              />
-              <button className="topbar-theme" onClick={() => setIsDarkMode(!isDarkMode)} title="Toggle theme">
-                <img src={isDarkMode ? lightModeIcon : darkModeIcon} alt={isDarkMode ? 'Light mode' : 'Dark mode'} className="topbar-theme-icon" />
-              </button>
-              <span className="topbar-counter">{landmarksState.length} {t.places}</span>
-            </header>
+          
+         <>
+  {showIntro && <IntroAnimation onComplete={() => setShowIntro(false)} />}
+  <div className="app">
+    <header className="topbar" ref={topbarRef}>
+      <button className="topbar-menu" onClick={() => setSidebarOpen(true)}>
+        <span /><span /><span />
+      </button>
+      <div className="topbar-brand">
+        <img src={logoCoyoacan} alt="Coyoacán" className="topbar-logo-img" />
+      </div>
+      <div className="topbar-lang">
+        <select className="lang-select" value={language} onChange={e => setLanguage(e.target.value)}>
+          <option value="es">ES</option>
+          <option value="en">EN</option>
+        </select>
+      </div>
+      <InboxPanel
+        landmarks={landmarksState}
+        onFlyTo={(landmarkId) => {
+          const lm = landmarksState.find(l => l.id === landmarkId);
+          if (lm) handleSelect(lm);
+          setSidebarOpen(false);
+        }}
+      />
+      <button className="topbar-theme" onClick={() => setIsDarkMode(!isDarkMode)} title="Toggle theme">
+        <img src={isDarkMode ? lightModeIcon : darkModeIcon} alt={isDarkMode ? 'Light mode' : 'Dark mode'} className="topbar-theme-icon" />
+      </button>
+    </header>
 
-            <div className="map-wrapper">
-              <MapContainer
-                center={[19.34915, -99.16178]}
-                zoom={15}
-                style={{ height: '100%', width: '100%' }}
-                zoomControl={true}
-                attributionControl={true}
-              >
-                <TileLayer
-                  key={isDarkMode ? 'dark' : 'light'}
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  url={isDarkMode 
-                    ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  }
-                  maxZoom={19}
-                />
-                {flyTarget && <FlyTo target={flyTarget} />}
+    <div className="map-wrapper">
+      <MapContainer
+        center={[19.34915, -99.16178]}
+        zoom={15}
+        style={{ height: '100%', width: '100%' }}
+        zoomControl={true}
+        attributionControl={true}
+      >
+        <TileLayer
+          key={isDarkMode ? 'dark' : 'light'}
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url={isDarkMode 
+            ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          }
+          maxZoom={19}
+        />
+        {flyTarget && <FlyTo target={flyTarget} />}
 
-                {routeCoords && (
-                  <Polyline
-                    positions={routeCoords}
-                    pathOptions={{ color: '#01a0e0', weight: 5, opacity: 0.9 }}
-                  />
-                )}
+        {routeCoords && (
+          <Polyline
+            positions={routeCoords}
+            pathOptions={{ color: '#01a0e0', weight: 5, opacity: 0.9 }}
+          />
+        )}
 
-                {userPos && (
-                  <Marker position={userPos} icon={userDotIcon} zIndexOffset={2000} />
-                )}
+        {userPos && (
+          <Marker position={userPos} icon={userIcon} zIndexOffset={2000} />
+        )}
 
-                {landmarksState.map(l => (
-                  <LandmarkMarker
-                    key={`${l.id}-${l.title}`}
-                    landmark={l}
-                    isSelected={selectedLandmark?.id === l.id}
-                    onSelect={handleSelect}
-                    translatedTitle={t[`${l.id}-title`] || l.title}
-                  />
-                ))}
+        <NavigationFollower userPos={userPos} isNavigating={isNavigating} />
 
-                <FitBoundsControl landmarks={landmarksState} />
-                <LocateControl userPos={userPos} />
-              </MapContainer>
+        {landmarksState.map(l => (
+          <LandmarkMarker
+            key={`${l.id}-${l.title}`}
+            landmark={l}
+            isSelected={selectedLandmark?.id === l.id}
+            onSelect={handleSelect}
+            translatedTitle={l.customTitle ? l.title : (t[`${l.id}-title`] || l.title)}
+            hasEvent={eventLandmarkIds.has(l.id)}
+          />
+        ))}
 
-              {/* Directions panel */}
-              {directionsTo && fromCoords && (
-                <DirectionsPanel
-                  from={fromCoords}
-                  to={directionsTo}
-                  onClose={handleCloseDirections}
-                  onRouteReady={setRouteCoords}
-                  userPos={userPos}
-                />
-              )}
-            </div>
+        <FitBoundsControl landmarks={landmarksState} />
+        <LocateControl userPos={userPos} />
+      </MapContainer>
 
-            {/* Place info card */}
-            {selectedLandmark && !directionsTo && (
-              <PlaceCard
-                landmark={selectedLandmark}
-                onClose={() => setSelectedLandmark(null)}
-                onDirections={handleDirections}
-              />
-            )}
+      {directionsTo && fromCoords && (
+        <DirectionsPanel
+          from={fromCoords}
+          to={directionsTo}
+          onClose={handleCloseDirections}
+          onRouteReady={setRouteCoords}
+          userPos={userPos}
+          isNavigating={isNavigating}
+          onToggleNavigation={() => setIsNavigating(n => !n)}
+        />
+      )}
+    </div>
 
-            <Sidebar
-              landmarks={landmarksState}
-              isOpen={sidebarOpen}
-              onClose={() => setSidebarOpen(false)}
-              onSelectLandmark={handleSelectFromSidebar}
-              onDirections={handleDirections}
-            />
-          </div>
+    {selectedLandmark && !directionsTo && (
+      <PlaceCard
+        landmark={selectedLandmark}
+        onClose={() => setSelectedLandmark(null)}
+        onDirections={handleDirections}
+      />
+    )}
+
+    <Sidebar
+      landmarks={landmarksState}
+      isOpen={sidebarOpen}
+      onClose={() => setSidebarOpen(false)}
+      onSelectLandmark={handleSelectFromSidebar}
+      onDirections={handleDirections}
+    />
+  </div>
+</>
         } />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>

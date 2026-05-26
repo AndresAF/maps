@@ -58,3 +58,23 @@
   color: #0f0f1a;
   border-color: transparent;
 }
+
+/* ── Event notification badge ── */
+.marker-event-dot {
+  position: absolute; top: -4px; right: -4px;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: #feb615;
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 0 6px rgba(254,182,21,0.7);
+  z-index: 2;
+}
+.marker-event-ring {
+  position: absolute; inset: -5px;
+  border-radius: 50%;
+  border: 2px solid #feb615;
+  animation: event-ring-pulse 2.2s ease-out infinite;
+}
+@keyframes event-ring-pulse {
+  0%   { opacity: 0.85; transform: scale(1); }
+  100% { opacity: 0;    transform: scale(2.8); }
+}

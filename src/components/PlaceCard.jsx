@@ -1,9 +1,11 @@
 import { getCategoryById, getCategoryLabel } from '../utils/storage'
 import { useLanguage } from '../App'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { gsap } from 'gsap'
+import locLight from '../assets/loc-brigth.png'
+import locDark from '../assets/loc-dark.png'
 import './PlaceCard.css'
 
-// Rich descriptions & extra facts per landmark id
 const DETAILS = {
   'default-1':  { extra: 'Built in the late 19th century, this ornate kiosk is the social heart of Coyoacán. Weekend crowds fill the square with music and street food.' },
   'default-2':  { extra: 'Flanked by colonial arcades and colorful facades, the plaza hosts artisan markets every Saturday and Sunday.' },
@@ -29,80 +31,129 @@ export default function PlaceCard({ landmark, onClose, onDirections }) {
   const detail = DETAILS[landmark.id] || {}
   const images = landmark.images || []
 
+  const overlayRef = useRef(null)
+  const cardRef = useRef(null)
+  const contentRef = useRef(null)
+
+  useEffect(() => {
+    gsap.timeline()
+      .to(overlayRef.current, { opacity: 1, duration: 0.25, ease: 'power2.out' })
+      .to(cardRef.current, { y: 0, duration: 0.5, ease: 'expo.out' }, '<0.05')
+
+    if (contentRef.current?.children.length) {
+      gsap.fromTo(
+        contentRef.current.children,
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.35, stagger: 0.07, delay: 0.3, ease: 'power2.out' }
+      )
+    }
+  }, [])
+
+  const handleClose = () => {
+    gsap.to(overlayRef.current, { opacity: 0, duration: 0.2 })
+    gsap.to(cardRef.current, { y: '100%', duration: 0.3, ease: 'power3.in', onComplete: onClose })
+  }
+
   return (
-    <div className="place-card-overlay fade-in" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="place-card slide-up">
-        <div className="pc-drag-handle" />
+    <div
+      className="place-card-overlay"
+      ref={overlayRef}
+      style={{ opacity: 0 }}
+      onClick={e => e.target === e.currentTarget && handleClose()}
+    >
+      <div
+        className="place-card"
+        ref={cardRef}
+        style={{ transform: 'translateY(100%)' }}
+      >
+        <div className="pc-drag-handle" style={{ background: cat.color }} />
 
-        {/* Color band */}
-        <div className="pc-band" style={{ background: cat.color }}>
-          <span className="pc-band-emoji">{cat.emoji}</span>
-          <span className="pc-cat-label">{getCategoryLabel(cat.id, t)}</span>
-          <button className="pc-close" onClick={onClose}>{t.close}</button>
-        </div>
-
-        {/* Image carousel */}
-        {images.length > 0 && (
-          <div className="pc-carousel">
-            <img 
-              src={images[currentImageIndex]} 
-              alt={landmark.title}
-              className="pc-carousel-image"
-            />
-            {images.length > 1 && (
-              <>
-                <button 
-                  className="pc-carousel-btn pc-carousel-prev"
-                  onClick={() => setCurrentImageIndex((prev) => prev === 0 ? images.length - 1 : prev - 1)}
-                >
-                  ‹
-                </button>
-                <button 
-                  className="pc-carousel-btn pc-carousel-next"
-                  onClick={() => setCurrentImageIndex((prev) => (prev + 1) % images.length)}
-                >
-                  ›
-                </button>
-                <div className="pc-carousel-dots">
-                  {images.map((_, idx) => (
-                    <button
-                      key={idx}
-                      className={`pc-carousel-dot ${idx === currentImageIndex ? 'active' : ''}`}
-                      onClick={() => setCurrentImageIndex(idx)}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        <div className="pc-body">
-          <h2 className="pc-title">{t[`${landmark.id}-title`] || landmark.title}</h2>
-
-          {landmark.description && (
-            <p className="pc-desc">{t[`${landmark.id}-desc`] || landmark.description}</p>
-          )}
-
-          {detail.extra && (
-            <p className="pc-extra">{t[`${landmark.id}-extra`] || detail.extra}</p>
-          )}
-
-          {landmark.tags?.length > 0 && (
-            <div className="pc-tags">
-              {landmark.tags.map(tag => <span key={tag} className="pc-tag">#{t[`tag-${tag}`] || tag}</span>)}
+        <div className="pc-hero">
+          {images.length > 0 ? (
+            <div className="pc-carousel">
+              <img
+                src={images[currentImageIndex]}
+                alt={landmark.title}
+                className="pc-carousel-image"
+              />
+              <div className="pc-carousel-gradient" />
+              {images.length > 1 && (
+                <>
+                  <button
+                    className="pc-carousel-btn pc-carousel-prev"
+                    onClick={() => setCurrentImageIndex(p => p === 0 ? images.length - 1 : p - 1)}
+                  >‹</button>
+                  <button
+                    className="pc-carousel-btn pc-carousel-next"
+                    onClick={() => setCurrentImageIndex(p => (p + 1) % images.length)}
+                  >›</button>
+                  <div className="pc-carousel-dots">
+                    {images.map((_, idx) => (
+                      <button
+                        key={idx}
+                        className={`pc-carousel-dot${idx === currentImageIndex ? ' active' : ''}`}
+                        onClick={() => setCurrentImageIndex(idx)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div
+              className="pc-hero-empty"
+              style={{ background: `linear-gradient(135deg, ${cat.color}44 0%, ${cat.color}11 100%)` }}
+            >
+              <span className="pc-hero-emoji">{cat.emoji}</span>
             </div>
           )}
 
-          <div className="pc-coords">
-            <span>📍</span>
-            <span>{landmark.lat.toFixed(5)}° N, {Math.abs(landmark.lng).toFixed(5)}° W</span>
+          <button className="pc-close" onClick={handleClose}>✕</button>
+          <span className="pc-cat-chip" style={{ background: cat.color }}>
+            {getCategoryLabel(cat.id, t)}
+          </span>
+        </div>
+
+        <div className="pc-body">
+          <div ref={contentRef}>
+            <h2 className="pc-title">{landmark.customTitle ? landmark.title : (t[`${landmark.id}-title`] || landmark.title)}</h2>
+
+            {landmark.description && (
+              <p className="pc-desc">{t[`${landmark.id}-desc`] || landmark.description}</p>
+            )}
+
+            {detail.extra && (
+              <div className="pc-extra-box">
+                <p className="pc-extra">{t[`${landmark.id}-extra`] || detail.extra}</p>
+              </div>
+            )}
+
+            {landmark.tags?.length > 0 && (
+              <div className="pc-tags">
+                {landmark.tags.map(tag => (
+                  <span
+                    key={tag}
+                    className="pc-tag"
+                    style={{ borderColor: `${cat.color}88`, color: cat.color }}
+                  >
+                    #{t[`tag-${tag}`] || tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="pc-coords">
+              <span>📍</span>
+              <span>{landmark.lat.toFixed(5)}° N, {Math.abs(landmark.lng).toFixed(5)}° W</span>
+            </div>
           </div>
         </div>
 
         <div className="pc-footer">
-          <button className="pc-btn-dir" onClick={() => { onDirections(landmark); onClose() }}>
-            <span>🧭</span> {t.getDirections}
+          <button className="pc-btn-dir" onClick={() => { onDirections(landmark); handleClose() }}>
+            <img src={locLight} alt="" className="pc-dir-icon light-only" />
+            <img src={locDark} alt="" className="pc-dir-icon dark-only" />
+            {t.getDirections}
           </button>
         </div>
       </div>

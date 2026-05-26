@@ -1,143 +1,239 @@
-.inbox-container {
-  position: relative;
-}
+/* ── Bell button ──────────────────────────────────── */
+.inbox-container { position: relative; }
 
 .inbox-bell {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 6px;
-  position: relative;
+  background: none; border: none; cursor: pointer;
+  padding: 6px; position: relative;
   transition: transform 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
-
-.inbox-bell:hover {
-  transform: scale(1.1);
-}
-
-.inbox-bell-icon {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-}
+.inbox-bell:hover { transform: scale(1.1); }
+.inbox-bell-icon { width: 22px; height: 22px; object-fit: contain; }
 
 .inbox-badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  background: #e91e2c;
-  color: white;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 5px;
-  border-radius: 10px;
-  min-width: 16px;
-  text-align: center;
+  position: absolute; top: 0; right: 0;
+  background: #e91e2c; color: white;
+  font-size: 10px; font-weight: 700;
+  padding: 2px 5px; border-radius: 10px;
+  min-width: 16px; text-align: center; line-height: 1.4;
 }
 
-.inbox-panel {
-  position: fixed;
-  top: 52px;
-  right: 0;
-  width: 320px;
-  max-height: calc(100vh - 52px);
+/* ── Tray dropdown ────────────────────────────────── */
+.inbox-tray {
+  position: absolute; top: calc(100% + 10px); right: -8px;
+  width: 310px; max-height: 380px;
   background: var(--surface);
-  border-left: 1px solid var(--border);
-  box-shadow: -4px 0 16px rgba(0,0,0,0.3);
-  z-index: 800;
-  transform: translateX(100%);
-  transition: transform 250ms ease;
-  display: flex;
-  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+  z-index: 900;
+  overflow: hidden;
+  display: flex; flex-direction: column;
 }
 
-.inbox-panel.open {
-  transform: translateX(0);
-}
-
-.inbox-header {
-  padding: 16px;
+.inbox-tray-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px 12px;
   border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-shrink: 0;
+  background: var(--surface);
 }
-
-.inbox-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
+.inbox-tray-title {
+  font-family: var(--font-display); font-size: 12px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.09em;
   color: var(--text);
 }
-
-.inbox-close {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 16px;
-  cursor: pointer;
-  padding: 4px;
+.inbox-tray-close {
+  background: none; border: none; color: var(--text-muted);
+  font-size: 13px; cursor: pointer; padding: 3px 6px;
+  border-radius: 6px; transition: all 0.15s;
 }
+.inbox-tray-close:hover { color: var(--text); background: var(--surface2); }
 
-.inbox-close:hover {
-  color: var(--text);
-}
-
-.inbox-content {
-  flex: 1;
+.inbox-tray-list {
   overflow-y: auto;
-  padding: 12px;
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 7px;
 }
 
-.inbox-empty {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--text-muted);
-}
-
-.inbox-card {
+.inbox-tray-item {
+  width: 100%; display: flex; flex-direction: column; gap: 7px;
+  padding: 13px 14px;
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 8px;
+  border-left: 3px solid #01a0e0;
+  border-radius: 12px;
+  cursor: pointer; text-align: left;
+  transition: all 0.18s ease;
+}
+.inbox-tray-item:hover {
+  background: var(--surface3, var(--surface2));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.13);
+  border-left-color: #704e9f;
 }
 
-.inbox-card-title {
-  margin: 0 0 6px 0;
-  font-size: 14px;
-  font-weight: 600;
+.inbox-tray-item-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.inbox-tray-item-title {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  font-family: var(--font-display); flex: 1;
+}
+.inbox-tray-item-arrow {
+  color: var(--text-muted); font-size: 18px; flex-shrink: 0;
+  line-height: 1; transition: transform 0.15s, color 0.15s;
+}
+.inbox-tray-item:hover .inbox-tray-item-arrow {
+  transform: translateX(3px);
+  color: #704e9f;
+}
+
+.inbox-tray-item-msg {
+  margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.inbox-tray-item-loc {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 20px; align-self: flex-start;
+  background: rgba(1,160,224,0.1);
+  border: 1px solid rgba(1,160,224,0.22);
+  color: #01a0e0; font-size: 11px; font-weight: 600;
+  font-family: var(--font-display);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.inbox-tray-loc { width: 11px; height: 11px; object-fit: contain; flex-shrink: 0; }
+
+.inbox-empty {
+  padding: 36px 20px; text-align: center;
+  font-size: 13px; color: var(--text-muted);
+}
+
+/* ── Notification popup card ──────────────────────── */
+.notif-overlay {
+  position: fixed; inset: 0; z-index: 1800;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+
+.notif-card {
+  width: 100%; max-width: 400px;
+  background: var(--surface);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 28px 72px rgba(0,0,0,0.5), 0 0 0 1px var(--border);
+}
+
+/* Header with gradient + noise-like texture overlay */
+.notif-card-header {
+  position: relative;
+  background: linear-gradient(135deg, #01a0e0 0%, #0070b0 40%, #704e9f 100%);
+  padding: 26px 22px 22px;
+  display: flex; align-items: flex-start; gap: 14px;
+  overflow: hidden;
+}
+.notif-card-header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 80% 0%, rgba(255,255,255,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.notif-card-header::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+}
+
+.notif-card-icon {
+  width: 30px; height: 30px; object-fit: contain;
+  flex-shrink: 0; margin-top: 2px;
+}
+.notif-card-title {
+  flex: 1; margin: 0;
+  font-family: var(--font-display); font-size: 18px; font-weight: 800;
+  color: #fff; line-height: 1.25; letter-spacing: 0.01em;
+}
+.notif-card-close {
+  background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; width: 30px; height: 30px; border-radius: 50%;
+  font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.15s; margin-top: 1px;
+}
+.notif-card-close:hover { background: rgba(255,255,255,0.32); }
+
+/* Body */
+.notif-card-body {
+  padding: 24px 22px 26px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+
+.notif-card-message {
+  margin: 0; font-size: 15px; line-height: 1.7;
   color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
 }
 
-.inbox-card-message {
-  margin: 0 0 6px 0;
-  font-size: 13px;
-  color: var(--text-muted);
-  line-height: 1.4;
+.notif-card-expiry {
+  margin: 0; font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.03em;
+  display: flex; align-items: center; gap: 5px;
+  padding: 0 2px;
+}
+.notif-card-expiry::before {
+  content: '';
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--text-dim); flex-shrink: 0;
 }
 
-.inbox-card-expiry {
-  margin: 0 0 8px 0;
-  font-size: 11px;
-  color: var(--text-dim);
+.notif-loc-btn {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  padding: 14px 18px; width: 100%;
+  background: linear-gradient(135deg, rgba(1,160,224,0.1), rgba(112,78,159,0.08));
+  border: 1.5px solid rgba(1,160,224,0.3);
+  border-radius: 14px; color: #01a0e0;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: all 0.2s; font-family: var(--font-display);
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.notif-loc-btn:hover {
+  background: linear-gradient(135deg, rgba(1,160,224,0.18), rgba(112,78,159,0.14));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(1,160,224,0.2);
+  border-color: rgba(1,160,224,0.5);
+}
+.dark .notif-loc-btn {
+  color: #ffbe06;
+  background: linear-gradient(135deg, rgba(255,190,6,0.1), rgba(255,190,6,0.05));
+  border-color: rgba(255,190,6,0.35);
+}
+.dark .notif-loc-btn:hover {
+  background: linear-gradient(135deg, rgba(255,190,6,0.18), rgba(255,190,6,0.1));
+  box-shadow: 0 6px 20px rgba(255,190,6,0.2);
+  border-color: rgba(255,190,6,0.6);
+}
+.notif-loc-icon { width: 17px; height: 17px; object-fit: contain; }
+
+/* Location chip in tray — also #ffbe06 in dark mode */
+.dark .inbox-tray-item-loc {
+  color: #ffbe06;
+  background: rgba(255,190,6,0.1);
+  border-color: rgba(255,190,6,0.25);
 }
 
-.inbox-card-btn {
-  background: var(--accent);
-  border: none;
-  color: #0f0f1a;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.inbox-card-btn:hover {
-  opacity: 0.9;
-}
+/* ── Theme helpers ────────────────────────────────── */
+.light-only { display: inline-block; }
+.dark-only  { display: none; }
+.dark .light-only { display: none !important; }
+.dark .dark-only  { display: inline-block !important; }

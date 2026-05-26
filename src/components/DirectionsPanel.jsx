@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { gsap } from 'gsap'
 import { useLanguage } from '../App'
 import './DirectionsPanel.css'
 
@@ -7,6 +8,12 @@ const OSRM_BASE = 'https://router.project-osrm.org/route/v1'
 function formatDistance(meters) {
   if (meters < 1000) return `${Math.round(meters)} m`
   return `${(meters / 1000).toFixed(1)} km`
+}
+
+function formatDuration(seconds) {
+  const m = Math.round(seconds / 60)
+  if (m < 60) return `${m} min`
+  return `${Math.floor(m / 60)}h ${m % 60}m`
 }
 
 function parseSteps(legs, t) {
@@ -63,36 +70,23 @@ function buildInstruction(type, modifier, name, t) {
 }
 
 function getIcon(type, modifier) {
-  if (type === 'depart')  return '🚩'
-  if (type === 'arrive')  return '🏁'
-  if (type === 'roundabout' || type === 'rotary') return '🔄'
-  if (type === 'exit roundabout') return '↗️'
+  if (type === 'depart')  return '▶'
+  if (type === 'arrive')  return '★'
+  if (type === 'roundabout' || type === 'rotary') return '↻'
+  if (type === 'exit roundabout') return '↗'
   switch (modifier) {
-    case 'left':        return '⬅️'
-    case 'right':       return '➡️'
-    case 'slight left': return '↖️'
-    case 'slight right':return '↗️'
-    case 'sharp left':  return '↩️'
-    case 'sharp right': return '↪️'
-    case 'uturn':       return '🔁'
-    default:            return '⬆️'
+    case 'left':        return '←'
+    case 'right':       return '→'
+    case 'slight left': return '↖'
+    case 'slight right':return '↗'
+    case 'sharp left':  return '↩'
+    case 'sharp right': return '↪'
+    case 'uturn':       return '↺'
+    default:            return '↑'
   }
 }
 
-function getIconFromSign(sign) {
-  if (!sign) return '⬆️'
-  const signLower = sign.toLowerCase()
-  if (signLower.includes('left')) return '⬅️'
-  if (signLower.includes('right')) return '➡️'
-  if (signLower.includes('uturn')) return '🔁'
-  if (signLower.includes('roundabout')) return '🔄'
-  if (signLower.includes('keep')) return '⬆️'
-  if (signLower.includes('slight')) return signLower.includes('left') ? '↖️' : '↗️'
-  if (signLower.includes('sharp')) return signLower.includes('left') ? '↩️' : '↪️'
-  return '⬆️'
-}
-
-export default function DirectionsPanel({ from, to, onClose, onRouteReady, userPos }) {
+export default function DirectionsPanel({ from, to, onClose, onRouteReady, userPos, isNavigating, onToggleNavigation }) {
   const { t } = useLanguage()
   const [mode, setMode] = useState('walking')
   const [steps, setSteps] = useState([])
@@ -102,6 +96,18 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
   const [isLive, setIsLive] = useState(false)
   const [lastUserPos, setLastUserPos] = useState(null)
   const [isMinimized, setIsMinimized] = useState(false)
+  const [stepsVisible, setStepsVisible] = useState(false)
+
+  const panelRef = useRef(null)
+
+  useEffect(() => {
+    if (panelRef.current) {
+      gsap.fromTo(panelRef.current,
+        { y: '100%' },
+        { y: 0, duration: 0.5, ease: 'expo.out' }
+      )
+    }
+  }, [])
 
   useEffect(() => {
     if (!from || !to) return
@@ -109,11 +115,8 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
     fetchRoute()
   }, [from, to, mode])
 
-  // Auto-refresh route when user position changes significantly
   useEffect(() => {
     if (!userPos || !from || !to) return
-    
-    // Only refetch if position changed by more than 10 meters
     if (lastUserPos) {
       const R = 6371000
       const φ1 = lastUserPos[0] * Math.PI / 180
@@ -124,13 +127,9 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
                 Math.cos(φ1) * Math.cos(φ2) *
                 Math.sin(Δλ/2) * Math.sin(Δλ/2)
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-      const distance = R * c
-      
-      if (distance < 10) return // Don't refetch for small movements
+      if (R * c < 10) return
     }
-    
     setLastUserPos(userPos)
-    // Update from coords and refetch
     fetchRoute()
   }, [userPos, from, to, mode])
 
@@ -141,35 +140,23 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
     setSummary(null)
     try {
       const profile = mode === 'walking' ? 'foot' : 'car'
-      // Use current user position if available, otherwise use initial from
       const currentFrom = userPos ? { lat: userPos[0], lng: userPos[1] } : from
       const url = `${OSRM_BASE}/${profile}/${currentFrom.lng},${currentFrom.lat};${to.lng},${to.lat}?steps=true&overview=full&geometries=geojson`
-      console.log('Fetching route:', url)
-      
-      // Add timeout to prevent hanging
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000)
-      
       const res = await fetch(url, { signal: controller.signal })
       clearTimeout(timeoutId)
-      
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
-      console.log('Route response:', data)
-      
       if (data.code !== 'Ok' || !data.routes?.length) throw new Error('No route found')
       const route = data.routes[0]
       setSummary({ distance: route.distance, duration: route.duration })
       setSteps(parseSteps(route.legs, t))
       onRouteReady?.(route.geometry.coordinates.map(([lng, lat]) => [lat, lng]))
     } catch (e) {
-      console.error('Route fetch error:', e)
-      // Fallback: show straight line if routing fails
       const straightLine = [[from.lat, from.lng], [to.lat, to.lng]]
       onRouteReady?.(straightLine)
-      
-      // Calculate approximate distance using Haversine formula
-      const R = 6371000 // Earth's radius in meters
+      const R = 6371000
       const φ1 = from.lat * Math.PI / 180
       const φ2 = to.lat * Math.PI / 180
       const Δφ = (to.lat - from.lat) * Math.PI / 180
@@ -179,62 +166,106 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
                 Math.sin(Δλ/2) * Math.sin(Δλ/2)
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
       const distance = R * c
-      
-      setSummary({ distance, duration: distance / (mode === 'walking' ? 1.4 : 8.3) }) // Approximate speeds
+      setSummary({ distance, duration: distance / (mode === 'walking' ? 1.4 : 8.3) })
       setSteps([
-        { instruction: t.startLocation, distance: 0, icon: '🚩' },
-        { instruction: `${t.headDirectlyTo} ${to.title}`, distance: distance, icon: '⬆️' },
-        { instruction: t.arriveDestination, distance: 0, icon: '🏁' }
+        { instruction: t.startLocation, distance: 0, icon: '▶' },
+        { instruction: `${t.headDirectlyTo} ${to.title}`, distance, icon: '↑' },
+        { instruction: t.arriveDestination, distance: 0, icon: '★' }
       ])
-      
-      if (e.name === 'AbortError') {
-        setError(t.routingUnavailable)
-      } else {
-        setError(t.straightLineFallback)
-      }
+      if (e.name === 'AbortError') setError(t.routingUnavailable)
+      else setError(t.straightLineFallback)
     } finally {
       setLoading(false)
     }
   }
 
+  const handleClose = () => {
+    gsap.to(panelRef.current, {
+      y: '100%', duration: 0.3, ease: 'power3.in',
+      onComplete: () => { onClose(); onRouteReady?.(null) }
+    })
+  }
+
   return (
-    <div className={`dir-panel slide-up ${isMinimized ? 'minimized' : ''}`}>
+    <div
+      className={`dir-panel${isMinimized ? ' minimized' : ''}`}
+      ref={panelRef}
+      style={{ transform: 'translateY(100%)' }}
+    >
+      <div className="dir-handle" />
+
       <div className="dir-header">
-        <div className="dir-title-row">
-          <span className="dir-icon">🧭</span>
-          <div className="dir-titles">
+
+        {/* Destination + live indicator */}
+        <div className="dir-top-row">
+          <div className="dir-dest-info">
             <span className="dir-label">{t.directionsTo}</span>
-            <span className="dir-dest">{to?.title}</span>
+            <h3 className="dir-dest">{to?.title}</h3>
           </div>
-          <button className="dir-minimize" onClick={() => setIsMinimized(!isMinimized)}>
-            {isMinimized ? '▲' : '▼'}
-          </button>
-          <button className="dir-end" onClick={() => { onClose(); onRouteReady?.(null); }}>
-            {t.end}
-          </button>
+          {isLive && <span className="dir-live-dot" title={t.live} />}
         </div>
 
+        {/* Navigation status bar */}
+        {isNavigating && (
+          <div className="dir-nav-status">
+            <span className="dir-nav-status-dot" />
+            <span>{t.navigating}</span>
+          </div>
+        )}
+
+        {/* Mode + summary — hidden when minimized */}
         {!isMinimized && (
           <>
             <div className="dir-mode-row">
-              {isLive && <span className="live-indicator">{t.live}</span>}
               <button
-                className={`mode-btn ${mode === 'walking' ? 'active' : ''}`}
+                className={`mode-btn${mode === 'walking' ? ' active walking' : ''}`}
                 onClick={() => setMode('walking')}
-              >{t.walking}</button>
+              >
+                🚶 {t.walking}
+              </button>
               <button
-                className={`mode-btn ${mode === 'driving' ? 'active' : ''}`}
+                className={`mode-btn${mode === 'driving' ? ' active driving' : ''}`}
                 onClick={() => setMode('driving')}
-              >{t.driving}</button>
+              >
+                🚗 {t.driving}
+              </button>
             </div>
 
             {summary && (
               <div className="dir-summary">
-                <span className="summary-chip">📏 {formatDistance(summary.distance)}</span>
+                <div className="summary-chip dist">
+                  <strong>{formatDistance(summary.distance)}</strong>
+                </div>
+                <div className="summary-chip time">
+                  <strong>{formatDuration(summary.duration)}</strong>
+                </div>
               </div>
             )}
           </>
         )}
+
+        {/* Action button row — always visible */}
+        <div className="dir-btn-row">
+          <button
+            className={`dir-action-btn dir-action-nav${isNavigating ? ' active' : ''}`}
+            onClick={onToggleNavigation}
+          >
+            <span className="dir-action-icon">{isNavigating ? '■' : '▶'}</span>
+            {isNavigating ? t.stopNavigation : t.navigate}
+          </button>
+          <button
+            className="dir-action-btn dir-action-hide"
+            onClick={() => setIsMinimized(!isMinimized)}
+          >
+            <span className="dir-action-icon">{isMinimized ? '▲' : '▽'}</span>
+            {isMinimized ? t.show : t.hide}
+          </button>
+          <button className="dir-action-btn dir-action-close" onClick={handleClose}>
+            <span className="dir-action-icon">✕</span>
+            {t.close}
+          </button>
+        </div>
+
       </div>
 
       {!isMinimized && (
@@ -246,17 +277,37 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
             </div>
           )}
           {error && <div className="dir-error">{error}</div>}
-          {steps.map((step, i) => (
-            <div key={i} className={`dir-step ${step.icon === '🏁' ? 'last' : ''}`}>
-              <span className="step-icon">{step.icon}</span>
-              <div className="step-info">
-                <span className="step-text">{step.instruction}</span>
-                {step.distance > 0 && (
-                  <span className="step-dist">{formatDistance(step.distance)}</span>
-                )}
-              </div>
+
+          {steps.length > 0 && (
+            <div className="dir-steps-row">
+              <button
+                className="dir-steps-toggle"
+                onClick={() => setStepsVisible(v => !v)}
+              >
+                <span>{stepsVisible ? t.hideSteps : t.showSteps}</span>
+                <span className="dir-steps-toggle-arrow">{stepsVisible ? '▲' : '▼'}</span>
+              </button>
             </div>
-          ))}
+          )}
+
+          {stepsVisible && (
+            <div className="dir-steps">
+              {steps.map((step, i) => (
+                <div
+                  key={i}
+                  className={`dir-step${i === 0 ? ' first' : ''}${i === steps.length - 1 ? ' last' : ''}`}
+                >
+                  <div className="step-bubble">{step.icon}</div>
+                  <div className="step-content">
+                    <span className="step-text">{step.instruction}</span>
+                    {step.distance > 0 && (
+                      <span className="step-dist">{formatDistance(step.distance)}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

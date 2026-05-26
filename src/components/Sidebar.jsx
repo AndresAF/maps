@@ -14,8 +14,8 @@ export default function Sidebar({ landmarks, isOpen, onClose, onSelectLandmark, 
   const filtered = landmarks
     .filter(l => {
       const q = search.toLowerCase()
-      const enTitle = translations.en[`${l.id}-title`] || l.title
-      const esTitle = translations.es[`${l.id}-title`] || l.title
+      const enTitle = l.customTitle ? l.title : (translations.en[`${l.id}-title`] || l.title)
+      const esTitle = l.customTitle ? l.title : (translations.es[`${l.id}-title`] || l.title)
       const enDesc = translations.en[`${l.id}-desc`] || l.description
       const esDesc = translations.es[`${l.id}-desc`] || l.description
       const enTags = l.tags?.map(tag => translations.en[`tag-${tag}`] || tag) || []
@@ -99,7 +99,7 @@ export default function Sidebar({ landmarks, isOpen, onClose, onSelectLandmark, 
               <div key={l.id} className="landmark-item" onClick={() => { onSelectLandmark(l); onClose() }}>
                 <span className="item-emoji">{cat.emoji}</span>
                 <div className="item-info">
-                  <span className="item-title">{t[`${l.id}-title`] || l.title}</span>
+                  <span className="item-title">{l.customTitle ? l.title : (t[`${l.id}-title`] || l.title)}</span>
                   <span className="item-cat" style={{ color: cat.color }}>{getCategoryLabel(cat.id, t)}</span>
                   {l.description && <span className="item-desc">{t[`${l.id}-desc`] || l.description}</span>}
                   {l.tags?.length > 0 && (

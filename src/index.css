@@ -1,3 +1,39 @@
+@font-face {
+  font-family: 'AllRoundGothic';
+  src: url('./assets/All Round Gothic/Dharma Type - All Round Gothic Book.otf') format('opentype');
+  font-weight: 300; font-style: normal;
+}
+@font-face {
+  font-family: 'AllRoundGothic';
+  src: url('./assets/All Round Gothic/Dharma Type - All Round Gothic Text.otf') format('opentype');
+  font-weight: 400; font-style: normal;
+}
+@font-face {
+  font-family: 'AllRoundGothic';
+  src: url('./assets/All Round Gothic/Dharma Type - All Round Gothic Semi.otf') format('opentype');
+  font-weight: 500; font-style: normal;
+}
+@font-face {
+  font-family: 'AllRoundGothic';
+  src: url('./assets/All Round Gothic/Dharma Type - All Round Gothic Medium.otf') format('opentype');
+  font-weight: 600; font-style: normal;
+}
+@font-face {
+  font-family: 'AllRoundGothic';
+  src: url('./assets/All Round Gothic/Dharma Type - All Round Gothic Demi.otf') format('opentype');
+  font-weight: 700; font-style: normal;
+}
+@font-face {
+  font-family: 'AllRoundGothic';
+  src: url('./assets/All Round Gothic/Dharma Type - All Round Gothic Bold.otf') format('opentype');
+  font-weight: 800; font-style: normal;
+}
+@font-face {
+  font-family: 'AllRoundGothic';
+  src: url('./assets/All Round Gothic/Dharma Type - All Round Gothic Thick.otf') format('opentype');
+  font-weight: 900; font-style: normal;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -21,8 +57,8 @@
   --shadow-lg: 0 20px 60px rgba(0,0,0,0.7);
   --radius: 14px;
   --radius-sm: 8px;
-  --font-display: 'Syne', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  --font-display: 'AllRoundGothic', sans-serif;
+  --font-body: 'AllRoundGothic', sans-serif;
 }
 
 /* Light mode */
