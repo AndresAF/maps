@@ -130,6 +130,11 @@
 .item-tag {
   font-size: 10px; color: var(--text-dim);
   background: var(--surface3); border-radius: 10px; padding: 1px 6px;
+  cursor: pointer; transition: all 0.15s;
+}
+.item-tag:hover { background: var(--surface2); color: var(--text-muted); }
+.item-tag.active {
+  background: var(--accent); color: white;
 }
 .item-actions {
   display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;

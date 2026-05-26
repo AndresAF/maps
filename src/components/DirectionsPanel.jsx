@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLanguage } from '../App'
 import './DirectionsPanel.css'
 
 const OSRM_BASE = 'https://router.project-osrm.org/route/v1'
@@ -8,7 +9,7 @@ function formatDistance(meters) {
   return `${(meters / 1000).toFixed(1)} km`
 }
 
-function parseSteps(legs) {
+function parseSteps(legs, t) {
   const steps = []
   for (const leg of legs) {
     for (const step of leg.steps) {
@@ -17,7 +18,7 @@ function parseSteps(legs) {
       const type = maneuver.type
       const modifier = maneuver.modifier || ''
       steps.push({
-        instruction: buildInstruction(type, modifier, name),
+        instruction: buildInstruction(type, modifier, name, t),
         distance: step.distance,
         icon: getIcon(type, modifier),
       })
@@ -26,38 +27,38 @@ function parseSteps(legs) {
   return steps.filter(s => s.distance > 0 || s.instruction)
 }
 
-function buildInstruction(type, modifier, name) {
-  const street = name ? ` onto ${name}` : ''
-  const on = name ? ` on ${name}` : ''
+function buildInstruction(type, modifier, name, t) {
+  const street = name ? ` ${t.dirOnto} ${name}` : ''
+  const on = name ? ` ${t.dirOn} ${name}` : ''
   switch (type) {
-    case 'depart':         return `Start${on}`
-    case 'arrive':         return `Arrive at your destination`
+    case 'depart':         return `${t.dirStart}${on}`
+    case 'arrive':         return t.dirArrive
     case 'turn':
-      if (modifier === 'left')        return `Turn left${street}`
-      if (modifier === 'right')       return `Turn right${street}`
-      if (modifier === 'slight left') return `Slight left${street}`
-      if (modifier === 'slight right')return `Slight right${street}`
-      if (modifier === 'sharp left')  return `Sharp left${street}`
-      if (modifier === 'sharp right') return `Sharp right${street}`
-      if (modifier === 'uturn')       return `Make a U-turn`
-      return `Turn${street}`
-    case 'new name':       return `Continue${on}`
-    case 'continue':       return `Continue straight${on}`
-    case 'merge':          return `Merge${street}`
-    case 'on ramp':        return `Take the ramp${street}`
-    case 'off ramp':       return `Take the exit${street}`
+      if (modifier === 'left')        return `${t.dirTurnLeft}${street}`
+      if (modifier === 'right')       return `${t.dirTurnRight}${street}`
+      if (modifier === 'slight left') return `${t.dirSlightLeft}${street}`
+      if (modifier === 'slight right')return `${t.dirSlightRight}${street}`
+      if (modifier === 'sharp left')  return `${t.dirSharpLeft}${street}`
+      if (modifier === 'sharp right') return `${t.dirSharpRight}${street}`
+      if (modifier === 'uturn')       return t.dirUTurn
+      return `${t.dirTurn}${street}`
+    case 'new name':       return `${t.dirContinue}${on}`
+    case 'continue':       return `${t.dirContinueStraight}${on}`
+    case 'merge':          return `${t.dirMerge}${street}`
+    case 'on ramp':        return `${t.dirTakeRamp}${street}`
+    case 'off ramp':       return `${t.dirTakeExit}${street}`
     case 'fork':
       if (modifier?.includes('left'))  return `Keep left${street}`
       if (modifier?.includes('right')) return `Keep right${street}`
-      return `Fork${street}`
+      return `${t.dirFork}${street}`
     case 'end of road':
-      if (modifier === 'left')  return `Turn left at end of road${street}`
-      if (modifier === 'right') return `Turn right at end of road${street}`
+      if (modifier === 'left')  return `${t.dirTurnLeft} at end of road${street}`
+      if (modifier === 'right') return `${t.dirTurnRight} at end of road${street}`
       return `End of road${street}`
     case 'roundabout':
-    case 'rotary':         return `Enter the roundabout${street}`
-    case 'exit roundabout':return `Exit the roundabout${street}`
-    default:               return name ? `Continue on ${name}` : `Continue`
+    case 'rotary':         return `${t.dirRoundabout}${street}`
+    case 'exit roundabout':return `Exit ${t.dirRoundabout}${street}`
+    default:               return name ? `${t.dirContinue} ${t.dirOn} ${name}` : t.dirContinue
   }
 }
 
@@ -92,6 +93,7 @@ function getIconFromSign(sign) {
 }
 
 export default function DirectionsPanel({ from, to, onClose, onRouteReady, userPos }) {
+  const { t } = useLanguage()
   const [mode, setMode] = useState('walking')
   const [steps, setSteps] = useState([])
   const [summary, setSummary] = useState(null)
@@ -158,7 +160,7 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
       if (data.code !== 'Ok' || !data.routes?.length) throw new Error('No route found')
       const route = data.routes[0]
       setSummary({ distance: route.distance, duration: route.duration })
-      setSteps(parseSteps(route.legs))
+      setSteps(parseSteps(route.legs, t))
       onRouteReady?.(route.geometry.coordinates.map(([lng, lat]) => [lat, lng]))
     } catch (e) {
       console.error('Route fetch error:', e)
@@ -180,15 +182,15 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
       
       setSummary({ distance, duration: distance / (mode === 'walking' ? 1.4 : 8.3) }) // Approximate speeds
       setSteps([
-        { instruction: 'Start at your location', distance: 0, icon: '🚩' },
-        { instruction: `Head directly to ${to.title}`, distance: distance, icon: '⬆️' },
-        { instruction: 'Arrive at destination', distance: 0, icon: '🏁' }
+        { instruction: t.startLocation, distance: 0, icon: '🚩' },
+        { instruction: `${t.headDirectlyTo} ${to.title}`, distance: distance, icon: '⬆️' },
+        { instruction: t.arriveDestination, distance: 0, icon: '🏁' }
       ])
       
       if (e.name === 'AbortError') {
-        setError('Routing service unavailable. Showing straight line.')
+        setError(t.routingUnavailable)
       } else {
-        setError('Could not find detailed route. Showing straight line.')
+        setError(t.straightLineFallback)
       }
     } finally {
       setLoading(false)
@@ -201,29 +203,29 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
         <div className="dir-title-row">
           <span className="dir-icon">🧭</span>
           <div className="dir-titles">
-            <span className="dir-label">Directions to</span>
+            <span className="dir-label">{t.directionsTo}</span>
             <span className="dir-dest">{to?.title}</span>
           </div>
           <button className="dir-minimize" onClick={() => setIsMinimized(!isMinimized)}>
             {isMinimized ? '▲' : '▼'}
           </button>
           <button className="dir-end" onClick={() => { onClose(); onRouteReady?.(null); }}>
-            End
+            {t.end}
           </button>
         </div>
 
         {!isMinimized && (
           <>
             <div className="dir-mode-row">
-              {isLive && <span className="live-indicator">● Live</span>}
+              {isLive && <span className="live-indicator">{t.live}</span>}
               <button
                 className={`mode-btn ${mode === 'walking' ? 'active' : ''}`}
                 onClick={() => setMode('walking')}
-              >🚶 Walking</button>
+              >{t.walking}</button>
               <button
                 className={`mode-btn ${mode === 'driving' ? 'active' : ''}`}
                 onClick={() => setMode('driving')}
-              >🚗 Driving</button>
+              >{t.driving}</button>
             </div>
 
             {summary && (
@@ -240,7 +242,7 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
           {loading && (
             <div className="dir-loading">
               <div className="dir-spinner" />
-              <span>Finding route…</span>
+              <span>{t.findingRoute}</span>
             </div>
           )}
           {error && <div className="dir-error">{error}</div>}

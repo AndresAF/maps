@@ -3,11 +3,12 @@ import { Marker } from 'react-leaflet'
 import { getCategoryById } from '../utils/storage'
 import './LandmarkMarker.css'
 
-function createMarkerIcon(landmark, isSelected) {
+function createMarkerIcon(landmark, isSelected, translatedTitle) {
   const cat = getCategoryById(landmark.category)
   const sel = isSelected ? 'selected' : ''
   // Short label — first 18 chars
-  const label = landmark.title.length > 18 ? landmark.title.slice(0, 16) + '…' : landmark.title
+  const title = translatedTitle || landmark.title
+  const label = title.length > 18 ? title.slice(0, 16) + '…' : title
 
   const html = `
     <div class="marker-wrap ${sel}">
@@ -29,11 +30,11 @@ function createMarkerIcon(landmark, isSelected) {
   })
 }
 
-export default function LandmarkMarker({ landmark, isSelected, onSelect }) {
+export default function LandmarkMarker({ landmark, isSelected, onSelect, translatedTitle }) {
   return (
     <Marker
       position={[landmark.lat, landmark.lng]}
-      icon={createMarkerIcon(landmark, isSelected)}
+      icon={createMarkerIcon(landmark, isSelected, translatedTitle)}
       eventHandlers={{ click: () => onSelect(landmark) }}
       zIndexOffset={isSelected ? 1000 : 0}
     />

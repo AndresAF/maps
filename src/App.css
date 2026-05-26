@@ -3,6 +3,11 @@
   display: flex; flex-direction: column;
 }
 
+/* azul: #01a0e0 */
+/* morado: #704e9f */
+/* rojo:#e91e2c */
+/* amarillo: #feb615 */
+
 /* Topbar */
 .topbar {
   height: 52px; flex-shrink: 0;
@@ -26,10 +31,10 @@
 .topbar-brand {
   flex: 1; display: flex; align-items: center; gap: 6px;
 }
-.topbar-logo { color: var(--accent); font-size: 20px; line-height: 1; }
-.topbar-name {
-  font-family: var(--font-display);
-  font-size: 17px; font-weight: 800; letter-spacing: -0.01em;
+.topbar-logo-img {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
 }
 .topbar-counter {
   font-size: 11px; color: var(--text-dim);
@@ -38,15 +43,42 @@
   border: 1px solid var(--border);
   padding: 3px 8px; border-radius: 20px;
 }
+.topbar-theme {
+  background: none; border: none; cursor: pointer;
+  padding: 6px;
+  transition: transform 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.topbar-theme:hover { transform: scale(1.1); }
+.topbar-theme-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+.topbar-lang-select {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); font-size: 12px; font-weight: 600;
+  padding: 4px 8px; border-radius: 8px; cursor: pointer;
+  transition: all 0.15s;
+}
+.topbar-lang-select:hover { background: var(--surface3); }
+.topbar-lang-select:focus { outline: none; border-color: var(--accent); }
 
 /* Map */
 .map-wrapper {
   flex: 1; position: relative; overflow: hidden;
 }
 
+/* Dark mode map filter */
+.dark .leaflet-layer {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
 /* Fit bounds button */
 .btn-fit {
-  position: absolute; bottom: 24px; right: 20px; z-index: 400;
+  position: absolute; top: 60px; right: 70px; z-index: 700;
   width: 40px; height: 40px; border-radius: var(--radius-sm);
   background: var(--surface2); border: 1px solid var(--border);
   color: var(--text-muted); font-size: 20px; cursor: pointer;
@@ -54,6 +86,39 @@
   box-shadow: var(--shadow); transition: all 0.15s;
 }
 .btn-fit:hover { background: var(--surface3); color: var(--text); }
+
+.dark .btn-fit {
+  background: white;
+  color: #0f0f1a;
+  border-color: white;
+}
+.light .btn-fit {
+  background: #0f0f1a;
+  color: white;
+  border-color: #0f0f1a;
+}
+
+/* Locate button */
+.btn-locate {
+  position: absolute; top: 60px; right: 20px; z-index: 700;
+  width: 40px; height: 40px; border-radius: var(--radius-sm);
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text-muted); font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow); transition: all 0.15s;
+}
+.btn-locate:hover { background: var(--surface3); color: var(--text); }
+
+.dark .btn-locate {
+  background: white;
+  color: #0f0f1a;
+  border-color: white;
+}
+.light .btn-locate {
+  background: #0f0f1a;
+  color: white;
+  border-color: #0f0f1a;
+}
 
 /* User location dot */
 .user-dot {

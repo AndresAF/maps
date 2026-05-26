@@ -1,4 +1,6 @@
-import { getCategoryById } from '../utils/storage'
+import { getCategoryById, getCategoryLabel } from '../utils/storage'
+import { useLanguage } from '../App'
+import { useState } from 'react'
 import './PlaceCard.css'
 
 // Rich descriptions & extra facts per landmark id
@@ -21,8 +23,11 @@ const DETAILS = {
 
 export default function PlaceCard({ landmark, onClose, onDirections }) {
   if (!landmark) return null
+  const { t } = useLanguage()
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const cat = getCategoryById(landmark.category)
   const detail = DETAILS[landmark.id] || {}
+  const images = landmark.images || []
 
   return (
     <div className="place-card-overlay fade-in" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -32,24 +37,60 @@ export default function PlaceCard({ landmark, onClose, onDirections }) {
         {/* Color band */}
         <div className="pc-band" style={{ background: cat.color }}>
           <span className="pc-band-emoji">{cat.emoji}</span>
-          <button className="pc-close" onClick={onClose}>✕</button>
+          <span className="pc-cat-label">{getCategoryLabel(cat.id, t)}</span>
+          <button className="pc-close" onClick={onClose}>{t.close}</button>
         </div>
 
+        {/* Image carousel */}
+        {images.length > 0 && (
+          <div className="pc-carousel">
+            <img 
+              src={images[currentImageIndex]} 
+              alt={landmark.title}
+              className="pc-carousel-image"
+            />
+            {images.length > 1 && (
+              <>
+                <button 
+                  className="pc-carousel-btn pc-carousel-prev"
+                  onClick={() => setCurrentImageIndex((prev) => prev === 0 ? images.length - 1 : prev - 1)}
+                >
+                  ‹
+                </button>
+                <button 
+                  className="pc-carousel-btn pc-carousel-next"
+                  onClick={() => setCurrentImageIndex((prev) => (prev + 1) % images.length)}
+                >
+                  ›
+                </button>
+                <div className="pc-carousel-dots">
+                  {images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      className={`pc-carousel-dot ${idx === currentImageIndex ? 'active' : ''}`}
+                      onClick={() => setCurrentImageIndex(idx)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="pc-body">
-          <span className="pc-cat-label" style={{ color: cat.color }}>{cat.label}</span>
-          <h2 className="pc-title">{landmark.title}</h2>
+          <h2 className="pc-title">{t[`${landmark.id}-title`] || landmark.title}</h2>
 
           {landmark.description && (
-            <p className="pc-desc">{landmark.description}</p>
+            <p className="pc-desc">{t[`${landmark.id}-desc`] || landmark.description}</p>
           )}
 
           {detail.extra && (
-            <p className="pc-extra">{detail.extra}</p>
+            <p className="pc-extra">{t[`${landmark.id}-extra`] || detail.extra}</p>
           )}
 
           {landmark.tags?.length > 0 && (
             <div className="pc-tags">
-              {landmark.tags.map(t => <span key={t} className="pc-tag">#{t}</span>)}
+              {landmark.tags.map(tag => <span key={tag} className="pc-tag">#{t[`tag-${tag}`] || tag}</span>)}
             </div>
           )}
 
@@ -61,7 +102,7 @@ export default function PlaceCard({ landmark, onClose, onDirections }) {
 
         <div className="pc-footer">
           <button className="pc-btn-dir" onClick={() => { onDirections(landmark); onClose() }}>
-            <span>🧭</span> Get directions
+            <span>🧭</span> {t.getDirections}
           </button>
         </div>
       </div>

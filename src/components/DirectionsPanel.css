@@ -79,6 +79,17 @@
   color: var(--accent);
 }
 
+.dark .mode-btn {
+  background: white;
+  color: #0f0f1a;
+  border-color: white;
+}
+.light .mode-btn {
+  background: #0f0f1a;
+  color: white;
+  border-color: #0f0f1a;
+}
+
 .dir-summary { display: flex; gap: 8px; }
 .summary-chip {
   background: var(--surface2); border: 1px solid var(--border);
