@@ -3,7 +3,10 @@ import { gsap } from 'gsap'
 import { useLanguage } from '../App'
 import './DirectionsPanel.css'
 
-const OSRM_BASE = 'https://router.project-osrm.org/route/v1'
+const OSRM_BASES = {
+  walking: 'https://routing.openstreetmap.de/routed-foot/route/v1/foot',
+  driving: 'https://routing.openstreetmap.de/routed-car/route/v1/driving',
+}
 
 function formatDistance(meters) {
   if (meters < 1000) return `${Math.round(meters)} m`
@@ -139,9 +142,8 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
     setSteps([])
     setSummary(null)
     try {
-      const profile = mode === 'walking' ? 'foot' : 'car'
       const currentFrom = userPos ? { lat: userPos[0], lng: userPos[1] } : from
-      const url = `${OSRM_BASE}/${profile}/${currentFrom.lng},${currentFrom.lat};${to.lng},${to.lat}?steps=true&overview=full&geometries=geojson`
+      const url = `${OSRM_BASES[mode]}/${currentFrom.lng},${currentFrom.lat};${to.lng},${to.lat}?steps=true&overview=full&geometries=geojson`
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000)
       const res = await fetch(url, { signal: controller.signal })
@@ -221,13 +223,13 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
                 className={`mode-btn${mode === 'walking' ? ' active walking' : ''}`}
                 onClick={() => setMode('walking')}
               >
-                🚶 {t.walking}
+                {t.walking}
               </button>
               <button
                 className={`mode-btn${mode === 'driving' ? ' active driving' : ''}`}
                 onClick={() => setMode('driving')}
               >
-                🚗 {t.driving}
+                {t.driving}
               </button>
             </div>
 
