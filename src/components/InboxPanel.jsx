@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { gsap } from 'gsap'
-import { loadNotifications, isExpired } from '../utils/notifications'
+import { collection, onSnapshot } from 'firebase/firestore'
+import { db } from '../firebase'
+import { isExpired } from '../utils/notifications'
 import { useLanguage } from '../App'
 import notifLight from '../assets/not-light.png'
 import notifDark from '../assets/not-dark.png'
@@ -18,13 +20,10 @@ export default function InboxPanel({ landmarks, onFlyTo }) {
   const cardRef = useRef(null)
 
   useEffect(() => {
-    setNotifications(loadNotifications())
-    const handleStorageChange = (e) => {
-      if (e.key === 'notifications' || e.key === null) setNotifications(loadNotifications())
-    }
-    window.addEventListener('storage', handleStorageChange)
-    const interval = setInterval(() => setNotifications(loadNotifications()), 2000)
-    return () => { window.removeEventListener('storage', handleStorageChange); clearInterval(interval) }
+    const unsub = onSnapshot(collection(db, 'notifications'), (snap) => {
+      setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    })
+    return unsub
   }, [])
 
   const activeNotifications = notifications.filter(n => !isExpired(n))

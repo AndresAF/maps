@@ -6,7 +6,9 @@ import 'leaflet/dist/leaflet.css'
 import { gsap } from 'gsap'
 import { useLandmarks } from './hooks/useLandmarks'
 import { loadLandmarks } from './utils/storage'
-import { loadNotifications, isExpired } from './utils/notifications'
+import { isExpired } from './utils/notifications'
+import { collection, onSnapshot } from 'firebase/firestore'
+import { db } from './firebase'
 import IntroAnimation from './components/IntroAnimation'
 import LandmarkMarker from './components/LandmarkMarker'
 import Sidebar from './components/Sidebar'
@@ -131,14 +133,12 @@ export default function App() {
   }, [isDarkMode])
 
   useEffect(() => {
-    const updateEvents = () => {
-      const notifs = loadNotifications()
+    const unsub = onSnapshot(collection(db, 'notifications'), (snap) => {
+      const notifs = snap.docs.map(d => d.data())
       const ids = new Set(notifs.filter(n => !isExpired(n) && n.landmarkId).map(n => n.landmarkId))
       setEventLandmarkIds(ids)
-    }
-    updateEvents()
-    const interval = setInterval(updateEvents, 10000)
-    return () => clearInterval(interval)
+    })
+    return unsub
   }, [])
 
   useEffect(() => {

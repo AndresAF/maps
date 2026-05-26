@@ -1,15 +1,11 @@
-const KEY = 'notifications_v1'
+import { doc, setDoc, deleteDoc } from 'firebase/firestore'
+import { db } from '../firebase'
 
-export const loadNotifications = () => {
-  try {
-    const raw = localStorage.getItem(KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch { return [] }
-}
+export const addNotificationToFirestore = (notification) =>
+  setDoc(doc(db, 'notifications', notification.id), notification)
 
-export const saveNotifications = (list) => {
-  try { localStorage.setItem(KEY, JSON.stringify(list)) } catch {}
-}
+export const deleteNotificationFromFirestore = (id) =>
+  deleteDoc(doc(db, 'notifications', id))
 
 export const isExpired = (n) => new Date(n.expiresAt) < new Date()
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
-import { loadNotifications, saveNotifications, generateNotifId } from '../utils/notifications'
-import { loadLandmarks, saveLandmarks, CATEGORIES } from '../utils/storage'
+import { collection, onSnapshot } from 'firebase/firestore'
+import { db } from '../firebase'
+import { addNotificationToFirestore, deleteNotificationFromFirestore, generateNotifId } from '../utils/notifications'
+import { saveLandmarkToFirestore, deleteLandmarkFromFirestore, CATEGORIES } from '../utils/storage'
 import { translations } from '../utils/translations'
 import lightModeIcon from '../assets/light-mode.png'
 import darkModeIcon from '../assets/night.png'
@@ -53,8 +55,13 @@ export default function AdminPage() {
   const [editingLandmark, setEditingLandmark] = useState(null)
 
   useEffect(() => {
-    setLandmarks(loadLandmarks())
-    setNotifications(loadNotifications())
+    const unsubLM = onSnapshot(collection(db, 'landmarks'), snap => {
+      setLandmarks(snap.docs.map(d => d.data()).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)))
+    })
+    const unsubNF = onSnapshot(collection(db, 'notifications'), snap => {
+      setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    })
+    return () => { unsubLM(); unsubNF() }
   }, [])
 
   useEffect(() => {
@@ -77,23 +84,18 @@ export default function AdminPage() {
     }
   }
 
-  const handleNotifSubmit = (e) => {
+  const handleNotifSubmit = async (e) => {
     e.preventDefault()
     if (!notifTitle || !notifMessage) return
-
-    const expiresAt = new Date(`${notifExpiryDate}T${notifExpiryTime}:00`).toISOString()
-
     const newNotif = {
       id: generateNotifId(),
       title: notifTitle,
       message: notifMessage,
       createdAt: new Date().toISOString(),
-      expiresAt,
+      expiresAt: new Date(`${notifExpiryDate}T${notifExpiryTime}:00`).toISOString(),
       landmarkId: notifLandmarkId || null,
     }
-
-    saveNotifications([...notifications, newNotif])
-    setNotifications([...notifications, newNotif])
+    await addNotificationToFirestore(newNotif)
     setNotifTitle('')
     setNotifMessage('')
     setNotifExpiryDate(getDefaultDate())
@@ -101,54 +103,18 @@ export default function AdminPage() {
     setNotifLandmarkId('')
   }
 
-  const handleNotifDelete = (id) => {
-    const updated = notifications.filter(n => n.id !== id)
-    saveNotifications(updated)
-    setNotifications(updated)
-  }
+  const handleNotifDelete = (id) => deleteNotificationFromFirestore(id)
 
-  const handleLandmarkSubmit = (e) => {
+  const handleLandmarkSubmit = async (e) => {
     e.preventDefault()
     if (!lmTitle || !lmDescription || !lmLat || !lmLng) return
-
     const tagsArray = lmTags.split(',').map(t => t.trim()).filter(t => t)
     const imagesArray = lmImages.split(',').map(img => img.trim()).filter(img => img)
-
-    if (editingLandmark) {
-      const updated = landmarks.map(l =>
-        l.id === editingLandmark.id
-          ? {
-              ...l,
-              title: lmTitle,
-              description: lmDescription,
-              category: lmCategory,
-              lat: parseFloat(lmLat),
-              lng: parseFloat(lmLng),
-              tags: tagsArray,
-              images: imagesArray,
-              customTitle: true,
-            }
-          : l
-      )
-      saveLandmarks(updated)
-      setLandmarks(updated)
-      setEditingLandmark(null)
-    } else {
-      const newLandmark = {
-        id: generateLandmarkId(),
-        title: lmTitle,
-        description: lmDescription,
-        category: lmCategory,
-        lat: parseFloat(lmLat),
-        lng: parseFloat(lmLng),
-        tags: tagsArray,
-        images: imagesArray,
-        createdAt: new Date().toISOString()
-      }
-      saveLandmarks([...landmarks, newLandmark])
-      setLandmarks([...landmarks, newLandmark])
-    }
-
+    const landmark = editingLandmark
+      ? { ...editingLandmark, title: lmTitle, description: lmDescription, category: lmCategory, lat: parseFloat(lmLat), lng: parseFloat(lmLng), tags: tagsArray, images: imagesArray, customTitle: true }
+      : { id: generateLandmarkId(), title: lmTitle, description: lmDescription, category: lmCategory, lat: parseFloat(lmLat), lng: parseFloat(lmLng), tags: tagsArray, images: imagesArray, createdAt: new Date().toISOString() }
+    await saveLandmarkToFirestore(landmark)
+    setEditingLandmark(null)
     setLmTitle('')
     setLmDescription('')
     setLmCategory('culture')
@@ -170,11 +136,7 @@ export default function AdminPage() {
     setActiveTab('landmarks')
   }
 
-  const handleLandmarkDelete = (id) => {
-    const updated = landmarks.filter(l => l.id !== id)
-    saveLandmarks(updated)
-    setLandmarks(updated)
-  }
+  const handleLandmarkDelete = (id) => deleteLandmarkFromFirestore(id)
 
   const handleLandmarkCancel = () => {
     setEditingLandmark(null)

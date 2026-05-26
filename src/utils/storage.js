@@ -1,3 +1,18 @@
+import { doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore'
+import { db } from '../firebase'
+
+export const saveLandmarkToFirestore = (landmark) =>
+  setDoc(doc(db, 'landmarks', landmark.id), landmark)
+
+export const deleteLandmarkFromFirestore = (id) =>
+  deleteDoc(doc(db, 'landmarks', id))
+
+export const seedDefaultLandmarks = async () => {
+  const batch = writeBatch(db)
+  DEFAULT_LANDMARKS.forEach(lm => batch.set(doc(db, 'landmarks', lm.id), lm))
+  await batch.commit()
+}
+
 const KEY = 'landmarks_v3'
 
 export const DEFAULT_LANDMARKS = [
