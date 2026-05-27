@@ -202,7 +202,7 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
         <div className="dir-top-row">
           <div className="dir-dest-info">
             <span className="dir-label">{t.directionsTo}</span>
-            <h3 className="dir-dest">{to?.title}</h3>
+            <h3 className="dir-dest">{to?.customTitle ? to.title : (t[`${to?.id}-title`] || to?.title)}</h3>
           </div>
           {isLive && <span className="dir-live-dot" title={t.live} />}
         </div>
