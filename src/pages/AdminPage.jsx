@@ -86,13 +86,18 @@ export default function AdminPage() {
     if (pin === ADMIN_PIN) {
       setUnlocked(true)
       setPinError('')
+      sessionStorage.setItem('adminMode', '1')
     } else {
       setPinError('Incorrect PIN')
       setPin('')
     }
   }
 
-  const handleLogout = () => { setUnlocked(false); setPin('') }
+  const handleLogout = () => {
+    setUnlocked(false)
+    setPin('')
+    sessionStorage.removeItem('adminMode')
+  }
 
   const handleNotifSubmit = async (e) => {
     e.preventDefault()

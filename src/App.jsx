@@ -109,6 +109,7 @@ export default function App() {
   const [addCoords, setAddCoords] = useState(null)
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [firestoreError, setFirestoreError] = useState(error)
+  const isAdmin = sessionStorage.getItem('adminMode') === '1'
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [flyTarget, setFlyTarget] = useState(null)
   const [directionsTo, setDirectionsTo] = useState(null)
@@ -341,13 +342,15 @@ export default function App() {
         <LocateControl userPos={userPos} />
       </MapContainer>
 
-      <button
-        className={`fab-add${addMode ? ' active' : ''}`}
-        title={addMode ? 'Cancel' : 'Add landmark'}
-        onClick={() => setAddMode(m => !m)}
-      >
-        {addMode ? '✕' : '+'}
-      </button>
+      {isAdmin && (
+        <button
+          className={`fab-add${addMode ? ' active' : ''}`}
+          title={addMode ? 'Cancel' : 'Add landmark'}
+          onClick={() => setAddMode(m => !m)}
+        >
+          {addMode ? '✕' : '+'}
+        </button>
+      )}
 
       {directionsTo && fromCoords && (
         <DirectionsPanel
