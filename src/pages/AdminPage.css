@@ -368,3 +368,15 @@ input[type="time"].admin-input {
 
 /* Location picker map */
 .admin-map-pin { font-size: 24px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
+
+.location-picker { display: flex; flex-direction: column; gap: 6px; }
+.location-search-row { display: flex; gap: 6px; }
+.location-search-input { flex: 1; }
+.location-search-btn {
+  padding: 0 14px; border-radius: var(--radius-sm);
+  background: var(--accent); border: none; cursor: pointer;
+  font-size: 16px; flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.location-search-btn:disabled { opacity: 0.5; cursor: default; }
+.location-no-result { font-size: 12px; color: var(--danger); margin: 0; }

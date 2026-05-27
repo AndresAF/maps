@@ -29,33 +29,77 @@ function MapClickHandler({ onChange }) {
   return null
 }
 
-function RecenterMap({ lat, lng }) {
+function FlyTo({ target }) {
   const map = useMap()
   useEffect(() => {
-    if (lat && lng) map.setView([parseFloat(lat), parseFloat(lng)], 16, { animate: true })
-  }, [lat, lng])
+    if (target) map.flyTo([target.lat, target.lng], 17, { duration: 1.2 })
+  }, [target])
   return null
 }
 
 function LocationPicker({ lat, lng, onChange, resetKey }) {
+  const [search, setSearch] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [noResult, setNoResult] = useState(false)
+  const [flyTarget, setFlyTarget] = useState(null)
+
   const hasPin = lat && lng
   const center = hasPin ? [parseFloat(lat), parseFloat(lng)] : [19.349, -99.162]
+
+  const handleSearch = async (e) => {
+    e.preventDefault()
+    if (!search.trim()) return
+    setSearching(true)
+    setNoResult(false)
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&limit=1`,
+        { headers: { 'Accept-Language': 'es' } }
+      )
+      const data = await res.json()
+      if (data.length > 0) {
+        const rlat = parseFloat(data[0].lat).toFixed(6)
+        const rlng = parseFloat(data[0].lon).toFixed(6)
+        onChange(rlat, rlng)
+        setFlyTarget({ lat: parseFloat(rlat), lng: parseFloat(rlng) })
+      } else {
+        setNoResult(true)
+      }
+    } catch {
+      setNoResult(true)
+    } finally {
+      setSearching(false)
+    }
+  }
+
   return (
-    <MapContainer key={resetKey} center={center} zoom={hasPin ? 16 : 15} style={{ height: 220, borderRadius: 10 }} zoomControl={false} attributionControl={false}>
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      <MapClickHandler onChange={onChange} />
-      {hasPin && (
-        <>
+    <div className="location-picker">
+      <form className="location-search-row" onSubmit={handleSearch}>
+        <input
+          className="admin-input location-search-input"
+          placeholder="Search address or place…"
+          value={search}
+          onChange={e => { setSearch(e.target.value); setNoResult(false) }}
+        />
+        <button type="submit" className="location-search-btn" disabled={searching}>
+          {searching ? '…' : '🔍'}
+        </button>
+      </form>
+      {noResult && <p className="location-no-result">No results found</p>}
+      <MapContainer key={resetKey} center={center} zoom={hasPin ? 16 : 15} style={{ height: 220, borderRadius: 10 }} zoomControl={false} attributionControl={false}>
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <MapClickHandler onChange={onChange} />
+        <FlyTo target={flyTarget} />
+        {hasPin && (
           <Marker
             position={[parseFloat(lat), parseFloat(lng)]}
             icon={pinIcon}
             draggable
             eventHandlers={{ dragend: e => { const p = e.target.getLatLng(); onChange(p.lat.toFixed(6), p.lng.toFixed(6)) } }}
           />
-          <RecenterMap lat={lat} lng={lng} />
-        </>
-      )}
-    </MapContainer>
+        )}
+      </MapContainer>
+    </div>
   )
 }
 
