@@ -102,15 +102,38 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
   const [stepsVisible, setStepsVisible] = useState(false)
 
   const panelRef = useRef(null)
+  const btnRowRef = useRef(null)
+  const stepsRef = useRef(null)
 
   useEffect(() => {
     if (panelRef.current) {
       gsap.fromTo(panelRef.current,
         { y: '100%' },
-        { y: 0, duration: 0.5, ease: 'expo.out' }
+        { y: 0, duration: 0.5, ease: 'expo.out', onComplete: () => {
+          if (btnRowRef.current) {
+            gsap.fromTo(
+              Array.from(btnRowRef.current.children),
+              { opacity: 0, y: 12 },
+              { opacity: 1, y: 0, duration: 0.35, stagger: 0.08, ease: 'power3.out' }
+            )
+          }
+        }}
       )
     }
   }, [])
+
+  useEffect(() => {
+    const el = stepsRef.current
+    if (!el) return
+    if (stepsVisible) {
+      gsap.fromTo(el,
+        { height: 0, opacity: 0 },
+        { height: 'auto', opacity: 1, duration: 0.35, ease: 'power3.out', overflow: 'hidden' }
+      )
+    } else {
+      gsap.to(el, { height: 0, opacity: 0, duration: 0.25, ease: 'power3.in' })
+    }
+  }, [stepsVisible])
 
   useEffect(() => {
     if (!from || !to) return
@@ -247,7 +270,7 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
         )}
 
         {/* Action button row — always visible */}
-        <div className="dir-btn-row">
+        <div className="dir-btn-row" ref={btnRowRef}>
           <button
             className={`dir-action-btn dir-action-nav${isNavigating ? ' active' : ''}`}
             onClick={onToggleNavigation}
@@ -292,8 +315,7 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
             </div>
           )}
 
-          {stepsVisible && (
-            <div className="dir-steps">
+          <div className="dir-steps" ref={stepsRef} style={{ height: 0, opacity: 0, overflow: 'hidden' }}>
               {steps.map((step, i) => (
                 <div
                   key={i}
@@ -309,7 +331,6 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
                 </div>
               ))}
             </div>
-          )}
         </div>
       )}
     </div>
