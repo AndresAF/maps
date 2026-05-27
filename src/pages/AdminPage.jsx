@@ -23,6 +23,9 @@ export default function AdminPage() {
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
   const [activeTab, setActiveTab] = useState('notifications')
+  const [loadingLM, setLoadingLM] = useState(true)
+  const [loadingNF, setLoadingNF] = useState(true)
+  const [editingNotif, setEditingNotif] = useState(null)
   const [language, setLanguage] = useState('es')
   const [isDarkMode, setIsDarkMode] = useState(false)
 
@@ -59,9 +62,11 @@ export default function AdminPage() {
   useEffect(() => {
     const unsubLM = onSnapshot(collection(db, 'landmarks'), snap => {
       setLandmarks(snap.docs.map(d => d.data()).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)))
+      setLoadingLM(false)
     })
     const unsubNF = onSnapshot(collection(db, 'notifications'), snap => {
       setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      setLoadingNF(false)
     })
     return () => { unsubLM(); unsubNF() }
   }, [])
@@ -92,15 +97,35 @@ export default function AdminPage() {
   const handleNotifSubmit = async (e) => {
     e.preventDefault()
     if (!notifTitle || !notifMessage) return
-    const newNotif = {
-      id: generateNotifId(),
+    const notif = {
+      id: editingNotif ? editingNotif.id : generateNotifId(),
       title: notifTitle,
       message: notifMessage,
-      createdAt: new Date().toISOString(),
+      createdAt: editingNotif ? editingNotif.createdAt : new Date().toISOString(),
       expiresAt: new Date(`${notifExpiryDate}T${notifExpiryTime}:00`).toISOString(),
       landmarkId: notifLandmarkId || null,
     }
-    await addNotificationToFirestore(newNotif)
+    await addNotificationToFirestore(notif)
+    setEditingNotif(null)
+    setNotifTitle('')
+    setNotifMessage('')
+    setNotifExpiryDate(getDefaultDate())
+    setNotifExpiryTime('23:59')
+    setNotifLandmarkId('')
+  }
+
+  const handleNotifEdit = (notif) => {
+    setEditingNotif(notif)
+    setNotifTitle(notif.title)
+    setNotifMessage(notif.message)
+    setNotifExpiryDate(notif.expiresAt.split('T')[0])
+    setNotifExpiryTime(notif.expiresAt.split('T')[1].slice(0, 5))
+    setNotifLandmarkId(notif.landmarkId || '')
+    setActiveTab('notifications')
+  }
+
+  const handleNotifCancel = () => {
+    setEditingNotif(null)
     setNotifTitle('')
     setNotifMessage('')
     setNotifExpiryDate(getDefaultDate())
@@ -241,7 +266,7 @@ export default function AdminPage() {
           {activeTab === 'notifications' && (
             <div className="admin-section">
               <form className="admin-form" onSubmit={handleNotifSubmit}>
-                <h4>{t.createNotification}</h4>
+                <h4>{editingNotif ? t.editLandmark?.replace('Landmark','Notification') || 'Edit Message' : t.createNotification}</h4>
                 <div className="admin-form-group">
                   <label>{t.title}</label>
                   <input
@@ -294,12 +319,23 @@ export default function AdminPage() {
                     ))}
                   </select>
                 </div>
-                <button type="submit" className="admin-submit">{t.createNotification}</button>
+                <div className="admin-form-buttons">
+                  <button type="submit" className="admin-submit">
+                    {editingNotif ? t.updateLandmark?.replace('Landmark','Message') || 'Update Message' : t.createNotification}
+                  </button>
+                  {editingNotif && (
+                    <button type="button" className="admin-cancel" onClick={handleNotifCancel}>
+                      {t.cancel}
+                    </button>
+                  )}
+                </div>
               </form>
 
               <div className="admin-notifications-list">
                 <h4>{t.notifications} ({notifications.length})</h4>
-                {notifications.length === 0 ? (
+                {loadingNF ? (
+                  <p className="admin-empty">Loading…</p>
+                ) : notifications.length === 0 ? (
                   <p className="admin-empty">{t.noNotificationsYet}</p>
                 ) : (
                   notifications.map(notif => (
@@ -316,12 +352,10 @@ export default function AdminPage() {
                         )}
                         <small>{new Date(notif.createdAt).toLocaleDateString()}</small>
                       </div>
-                      <button
-                        className="admin-delete-btn"
-                        onClick={() => handleNotifDelete(notif.id)}
-                      >
-                        {t.delete}
-                      </button>
+                      <div className="admin-landmark-actions">
+                        <button className="admin-edit-btn" onClick={() => handleNotifEdit(notif)}>{t.edit}</button>
+                        <button className="admin-delete-btn" onClick={() => handleNotifDelete(notif.id)}>{t.delete}</button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -419,7 +453,7 @@ export default function AdminPage() {
 
               <div className="admin-landmarks-list">
                 <h4>{t.landmarks} ({landmarks.length})</h4>
-                {landmarks.map(landmark => (
+                {loadingLM ? <p className="admin-empty">Loading…</p> : landmarks.map(landmark => (
                   <div key={landmark.id} className="admin-landmark-item">
                     <div className="admin-landmark-info">
                       <h5>{landmark.title}</h5>

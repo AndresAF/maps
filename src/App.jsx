@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo, createContext, useContext } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { MapContainer, TileLayer, Polyline, useMap, Marker } from 'react-leaflet'
+import { MapContainer, TileLayer, Polyline, useMap, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { gsap } from 'gsap'
@@ -8,6 +8,7 @@ import { useLandmarks } from './hooks/useLandmarks'
 import { isExpired } from './utils/notifications'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from './firebase'
+import AddLandmarkModal from './components/AddLandmarkModal'
 import IntroAnimation from './components/IntroAnimation'
 import LandmarkMarker from './components/LandmarkMarker'
 import Sidebar from './components/Sidebar'
@@ -15,6 +16,7 @@ import DirectionsPanel from './components/DirectionsPanel'
 import PlaceCard from './components/PlaceCard'
 import InboxPanel from './components/InboxPanel'
 import AdminPage from './pages/AdminPage'
+import { saveLandmarkToFirestore, generateId } from './utils/storage'
 import { translations } from './utils/translations'
 import './App.css'
 import logoCoyoacan from './assets/logocoyoacan.png'
@@ -93,11 +95,20 @@ function NavigationFollower({ userPos, isNavigating }) {
   return null
 }
 
+function MapClickHandler({ addMode, onMapClick }) {
+  useMapEvents({ click: e => { if (addMode) onMapClick(e.latlng) } })
+  return null
+}
+
 export default function App() {
-  const { landmarks } = useLandmarks()
+  const { landmarks, loading, error } = useLandmarks()
   const [landmarksState, setLandmarksState] = useState(landmarks || [])
   const [showIntro, setShowIntro] = useState(true)
   const [selectedLandmark, setSelectedLandmark] = useState(null)
+  const [addMode, setAddMode] = useState(false)
+  const [addCoords, setAddCoords] = useState(null)
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const [firestoreError, setFirestoreError] = useState(error)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [flyTarget, setFlyTarget] = useState(null)
   const [directionsTo, setDirectionsTo] = useState(null)
@@ -113,12 +124,22 @@ export default function App() {
 
   const t = translations[language]
 
-  // Sync landmarks state when landmarks from hook changes
   useEffect(() => {
-    if (landmarks && landmarks.length > 0) {
-      setLandmarksState(landmarks)
-    }
+    if (landmarks && landmarks.length > 0) setLandmarksState(landmarks)
   }, [landmarks])
+
+  useEffect(() => { if (error) setFirestoreError(true) }, [error])
+
+  const handleMapClick = useCallback((latlng) => {
+    setAddCoords({ lat: latlng.lat, lng: latlng.lng })
+    setAddModalOpen(true)
+    setAddMode(false)
+  }, [])
+
+  const handleAddSave = useCallback(async (data) => {
+    const landmark = { ...data, id: generateId(), createdAt: new Date().toISOString() }
+    await saveLandmarkToFirestore(landmark)
+  }, [])
 
   useEffect(() => {
     // Apply theme class to root element
@@ -229,12 +250,23 @@ export default function App() {
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
       <Routes>
-        
+
         <Route path="/" element={
-          
+
          <>
   {showIntro && <IntroAnimation onComplete={() => setShowIntro(false)} />}
-  <div className="app">
+  {loading && !showIntro && (
+    <div className="map-loading-overlay">
+      <div className="map-loading-spinner" />
+    </div>
+  )}
+  {firestoreError && (
+    <div className="firestore-error-banner">
+      Showing cached data — couldn't reach the server
+      <button onClick={() => setFirestoreError(false)}>✕</button>
+    </div>
+  )}
+  <div className={`app${addMode ? ' add-mode' : ''}`}>
     <header className="topbar" ref={topbarRef}>
       <button className="topbar-menu" onClick={() => setSidebarOpen(true)}>
         <span /><span /><span />
@@ -304,9 +336,18 @@ export default function App() {
           />
         ))}
 
+        <MapClickHandler addMode={addMode} onMapClick={handleMapClick} />
         <FitBoundsControl landmarks={landmarksState} />
         <LocateControl userPos={userPos} />
       </MapContainer>
+
+      <button
+        className={`fab-add${addMode ? ' active' : ''}`}
+        title={addMode ? 'Cancel' : 'Add landmark'}
+        onClick={() => setAddMode(m => !m)}
+      >
+        {addMode ? '✕' : '+'}
+      </button>
 
       {directionsTo && fromCoords && (
         <DirectionsPanel
@@ -335,6 +376,13 @@ export default function App() {
       onClose={() => setSidebarOpen(false)}
       onSelectLandmark={handleSelectFromSidebar}
       onDirections={handleDirections}
+    />
+
+    <AddLandmarkModal
+      isOpen={addModalOpen}
+      onClose={() => setAddModalOpen(false)}
+      onSave={handleAddSave}
+      coords={addCoords}
     />
   </div>
 </>

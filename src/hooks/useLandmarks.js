@@ -6,6 +6,7 @@ import { DEFAULT_LANDMARKS } from '../utils/storage'
 export function useLandmarks() {
   const [landmarks, setLandmarks] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const seededRef = useRef(false)
 
   useEffect(() => {
@@ -31,14 +32,15 @@ export function useLandmarks() {
         setLandmarks(sorted)
         setLoading(false)
       },
-      (error) => {
-        console.error('Firestore landmarks error:', error.message)
+      (err) => {
+        console.error('Firestore landmarks error:', err.message)
         setLandmarks(DEFAULT_LANDMARKS)
         setLoading(false)
+        setError(true)
       }
     )
     return unsub
   }, [])
 
-  return { landmarks, loading }
+  return { landmarks, loading, error }
 }

@@ -162,3 +162,50 @@
   transition: transform 0.4s ease;
   filter: drop-shadow(0 2px 6px rgba(79,195,247,0.7));
 }
+
+/* Loading overlay */
+.map-loading-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+}
+.map-loading-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Firestore error banner */
+.firestore-error-banner {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  z-index: 9000;
+  background: #e91e2c; color: #fff;
+  padding: 10px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.firestore-error-banner button {
+  background: none; border: none; color: #fff;
+  cursor: pointer; font-size: 16px; line-height: 1; padding: 0;
+}
+
+/* Add landmark FAB */
+.fab-add {
+  position: absolute; bottom: 100px; right: 16px; z-index: 1000;
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--accent); border: none; color: #0f0f1a;
+  font-size: 26px; font-weight: 700; line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, transform 0.15s;
+}
+.fab-add:hover { transform: scale(1.08); }
+.fab-add.active { background: var(--danger); color: #fff; }
+
+/* Add-mode cursor */
+.app.add-mode .leaflet-container { cursor: crosshair !important; }
