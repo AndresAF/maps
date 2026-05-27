@@ -14,9 +14,15 @@ export function useLandmarks() {
       async (snap) => {
         if (snap.empty && !seededRef.current) {
           seededRef.current = true
-          const batch = writeBatch(db)
-          DEFAULT_LANDMARKS.forEach(lm => batch.set(doc(db, 'landmarks', lm.id), lm))
-          await batch.commit()
+          try {
+            const batch = writeBatch(db)
+            DEFAULT_LANDMARKS.forEach(lm => batch.set(doc(db, 'landmarks', lm.id), lm))
+            await batch.commit()
+          } catch (err) {
+            console.error('Firestore seed error:', err.message)
+            setLandmarks(DEFAULT_LANDMARKS)
+            setLoading(false)
+          }
           return
         }
         const sorted = snap.docs
