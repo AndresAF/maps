@@ -201,7 +201,7 @@
 .dir-steps-toggle-arrow { font-size: 10px; }
 
 /* Steps with vertical connector */
-.dir-steps { padding: 4px 0; }
+.dir-steps { padding: 4px 0; overflow: hidden; }
 
 .dir-step {
   display: flex; align-items: flex-start; gap: 12px;

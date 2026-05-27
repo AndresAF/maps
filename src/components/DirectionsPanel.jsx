@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { gsap } from 'gsap'
 import { useLanguage } from '../App'
 import './DirectionsPanel.css'
@@ -122,16 +122,17 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
     }
   }, [])
 
+  useLayoutEffect(() => {
+    if (stepsRef.current) gsap.set(stepsRef.current, { height: 0, autoAlpha: 0 })
+  }, [isMinimized])
+
   useEffect(() => {
     const el = stepsRef.current
     if (!el) return
     if (stepsVisible) {
-      gsap.fromTo(el,
-        { height: 0, opacity: 0 },
-        { height: 'auto', opacity: 1, duration: 0.35, ease: 'power3.out', overflow: 'hidden' }
-      )
+      gsap.to(el, { height: 'auto', autoAlpha: 1, duration: 0.35, ease: 'power3.out' })
     } else {
-      gsap.to(el, { height: 0, opacity: 0, duration: 0.25, ease: 'power3.in' })
+      gsap.to(el, { height: 0, autoAlpha: 0, duration: 0.25, ease: 'power3.in' })
     }
   }, [stepsVisible])
 
@@ -315,7 +316,7 @@ export default function DirectionsPanel({ from, to, onClose, onRouteReady, userP
             </div>
           )}
 
-          <div className="dir-steps" ref={stepsRef} style={{ height: 0, opacity: 0, overflow: 'hidden' }}>
+          <div className="dir-steps" ref={stepsRef}>
               {steps.map((step, i) => (
                 <div
                   key={i}
