@@ -9,20 +9,28 @@ export function useLandmarks() {
   const seededRef = useRef(false)
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'landmarks'), async (snap) => {
-      if (snap.empty && !seededRef.current) {
-        seededRef.current = true
-        const batch = writeBatch(db)
-        DEFAULT_LANDMARKS.forEach(lm => batch.set(doc(db, 'landmarks', lm.id), lm))
-        await batch.commit()
-        return
+    const unsub = onSnapshot(
+      collection(db, 'landmarks'),
+      async (snap) => {
+        if (snap.empty && !seededRef.current) {
+          seededRef.current = true
+          const batch = writeBatch(db)
+          DEFAULT_LANDMARKS.forEach(lm => batch.set(doc(db, 'landmarks', lm.id), lm))
+          await batch.commit()
+          return
+        }
+        const sorted = snap.docs
+          .map(d => d.data())
+          .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        setLandmarks(sorted)
+        setLoading(false)
+      },
+      (error) => {
+        console.error('Firestore landmarks error:', error.message)
+        setLandmarks(DEFAULT_LANDMARKS)
+        setLoading(false)
       }
-      const sorted = snap.docs
-        .map(d => d.data())
-        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-      setLandmarks(sorted)
-      setLoading(false)
-    })
+    )
     return unsub
   }, [])
 

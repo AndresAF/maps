@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { collection, onSnapshot } from 'firebase/firestore'
-import { db } from '../firebase'
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth'
+import { db, auth } from '../firebase'
 import { addNotificationToFirestore, deleteNotificationFromFirestore, generateNotifId } from '../utils/notifications'
 import { saveLandmarkToFirestore, deleteLandmarkFromFirestore, CATEGORIES } from '../utils/storage'
 import { translations } from '../utils/translations'
@@ -17,9 +18,12 @@ const generateLandmarkId = () =>
 export default function AdminPage() {
   const [landmarks, setLandmarks] = useState([])
   const [notifications, setNotifications] = useState([])
-  const [isUnlocked, setIsUnlocked] = useState(false)
-  const [pin, setPin] = useState('')
-  const [pinError, setPinError] = useState('')
+  const [user, setUser] = useState(null)
+  const [authChecked, setAuthChecked] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('notifications')
   const [language, setLanguage] = useState('es')
   const [isDarkMode, setIsDarkMode] = useState(false)
@@ -29,6 +33,11 @@ export default function AdminPage() {
   useEffect(() => {
     document.documentElement.classList.add('light')
     document.documentElement.classList.remove('dark')
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u)
+      setAuthChecked(true)
+    })
+    return unsub
   }, [])
   
   const getDefaultDate = () => {
@@ -74,15 +83,20 @@ export default function AdminPage() {
     }
   }, [isDarkMode])
 
-  const handlePinSubmit = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
-    if (pin === '1522') {
-      setIsUnlocked(true)
-      setPinError('')
-    } else {
-      setPinError('Incorrect PIN')
+    setAuthError('')
+    setAuthLoading(true)
+    try {
+      await signInWithEmailAndPassword(auth, email, password)
+    } catch {
+      setAuthError('Invalid email or password')
+    } finally {
+      setAuthLoading(false)
     }
   }
+
+  const handleLogout = () => signOut(auth)
 
   const handleNotifSubmit = async (e) => {
     e.preventDefault()
@@ -153,7 +167,9 @@ export default function AdminPage() {
     window.location.href = '/'
   }
 
-  if (!isUnlocked) {
+  if (!authChecked) return null
+
+  if (!user) {
     return (
       <div className="admin-page">
         <div className="admin-login">
@@ -165,16 +181,28 @@ export default function AdminPage() {
           </div>
           <div className="admin-login-body">
             <p className="admin-login-label">{t.adminAccess}</p>
-            <form onSubmit={handlePinSubmit}>
+            <form onSubmit={handleLogin}>
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="admin-pin-input"
+                autoComplete="email"
+              />
               <input
                 type="password"
                 placeholder={t.enterPin}
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
                 className="admin-pin-input"
+                style={{ marginTop: 10 }}
+                autoComplete="current-password"
               />
-              {pinError && <p className="admin-error">{pinError}</p>}
-              <button type="submit" className="admin-login-btn">{t.unlock}</button>
+              {authError && <p className="admin-error">{authError}</p>}
+              <button type="submit" className="admin-login-btn" disabled={authLoading}>
+                {authLoading ? '…' : t.unlock}
+              </button>
             </form>
           </div>
         </div>
@@ -206,6 +234,7 @@ export default function AdminPage() {
               <img src={isDarkMode ? lightModeIcon : darkModeIcon} alt="" className="admin-theme-icon" />
             </button>
             <button className="admin-back" onClick={handleBack}>← {t.back}</button>
+            <button className="admin-back" onClick={handleLogout} style={{ background: 'rgba(233,30,44,0.12)', color: '#e91e2c', borderColor: 'rgba(233,30,44,0.3)' }}>⏻</button>
           </div>
         </div>
 
