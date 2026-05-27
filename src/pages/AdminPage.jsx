@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { collection, onSnapshot } from 'firebase/firestore'
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth'
-import { db, auth } from '../firebase'
+import { db } from '../firebase'
+
+const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || '1522'
 import { addNotificationToFirestore, deleteNotificationFromFirestore, generateNotifId } from '../utils/notifications'
 import { saveLandmarkToFirestore, deleteLandmarkFromFirestore, CATEGORIES } from '../utils/storage'
 import { translations } from '../utils/translations'
@@ -18,12 +19,9 @@ const generateLandmarkId = () =>
 export default function AdminPage() {
   const [landmarks, setLandmarks] = useState([])
   const [notifications, setNotifications] = useState([])
-  const [user, setUser] = useState(null)
-  const [authChecked, setAuthChecked] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [authError, setAuthError] = useState('')
-  const [authLoading, setAuthLoading] = useState(false)
+  const [unlocked, setUnlocked] = useState(false)
+  const [pin, setPin] = useState('')
+  const [pinError, setPinError] = useState('')
   const [activeTab, setActiveTab] = useState('notifications')
   const [language, setLanguage] = useState('es')
   const [isDarkMode, setIsDarkMode] = useState(false)
@@ -33,11 +31,6 @@ export default function AdminPage() {
   useEffect(() => {
     document.documentElement.classList.add('light')
     document.documentElement.classList.remove('dark')
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u)
-      setAuthChecked(true)
-    })
-    return unsub
   }, [])
   
   const getDefaultDate = () => {
@@ -83,20 +76,18 @@ export default function AdminPage() {
     }
   }, [isDarkMode])
 
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault()
-    setAuthError('')
-    setAuthLoading(true)
-    try {
-      await signInWithEmailAndPassword(auth, email, password)
-    } catch {
-      setAuthError('Invalid email or password')
-    } finally {
-      setAuthLoading(false)
+    if (pin === ADMIN_PIN) {
+      setUnlocked(true)
+      setPinError('')
+    } else {
+      setPinError('Incorrect PIN')
+      setPin('')
     }
   }
 
-  const handleLogout = () => signOut(auth)
+  const handleLogout = () => { setUnlocked(false); setPin('') }
 
   const handleNotifSubmit = async (e) => {
     e.preventDefault()
@@ -167,9 +158,7 @@ export default function AdminPage() {
     window.location.href = '/'
   }
 
-  if (!authChecked) return null
-
-  if (!user) {
+  if (!unlocked) {
     return (
       <div className="admin-page">
         <div className="admin-login">
@@ -183,25 +172,18 @@ export default function AdminPage() {
             <p className="admin-login-label">{t.adminAccess}</p>
             <form onSubmit={handleLogin}>
               <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="admin-pin-input"
-                autoComplete="email"
-              />
-              <input
                 type="password"
+                inputMode="numeric"
                 placeholder={t.enterPin}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
+                value={pin}
+                onChange={e => setPin(e.target.value)}
                 className="admin-pin-input"
-                style={{ marginTop: 10 }}
-                autoComplete="current-password"
+                autoComplete="off"
+                autoFocus
               />
-              {authError && <p className="admin-error">{authError}</p>}
-              <button type="submit" className="admin-login-btn" disabled={authLoading}>
-                {authLoading ? '…' : t.unlock}
+              {pinError && <p className="admin-error">{pinError}</p>}
+              <button type="submit" className="admin-login-btn">
+                {t.unlock}
               </button>
             </form>
           </div>
