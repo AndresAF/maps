@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { collection, onSnapshot } from 'firebase/firestore'
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import { db } from '../firebase'
 
 const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || '1522'
@@ -15,6 +18,46 @@ import './AdminPage.css'
 
 const generateLandmarkId = () =>
   Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+
+const pinIcon = L.divIcon({
+  html: '<div class="admin-map-pin">📍</div>',
+  className: '', iconSize: [28, 28], iconAnchor: [14, 28]
+})
+
+function MapClickHandler({ onChange }) {
+  useMapEvents({ click: e => onChange(e.latlng.lat.toFixed(6), e.latlng.lng.toFixed(6)) })
+  return null
+}
+
+function RecenterMap({ lat, lng }) {
+  const map = useMap()
+  useEffect(() => {
+    if (lat && lng) map.setView([parseFloat(lat), parseFloat(lng)], 16, { animate: true })
+  }, [lat, lng])
+  return null
+}
+
+function LocationPicker({ lat, lng, onChange, resetKey }) {
+  const hasPin = lat && lng
+  const center = hasPin ? [parseFloat(lat), parseFloat(lng)] : [19.349, -99.162]
+  return (
+    <MapContainer key={resetKey} center={center} zoom={hasPin ? 16 : 15} style={{ height: 220, borderRadius: 10 }} zoomControl={false} attributionControl={false}>
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <MapClickHandler onChange={onChange} />
+      {hasPin && (
+        <>
+          <Marker
+            position={[parseFloat(lat), parseFloat(lng)]}
+            icon={pinIcon}
+            draggable
+            eventHandlers={{ dragend: e => { const p = e.target.getLatLng(); onChange(p.lat.toFixed(6), p.lng.toFixed(6)) } }}
+          />
+          <RecenterMap lat={lat} lng={lng} />
+        </>
+      )}
+    </MapContainer>
+  )
+}
 
 export default function AdminPage() {
   const [landmarks, setLandmarks] = useState([])
@@ -401,6 +444,15 @@ export default function AdminPage() {
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
+                </div>
+                <div className="admin-form-group">
+                  <label>Location — click map to place, drag to adjust</label>
+                  <LocationPicker
+                    lat={lmLat}
+                    lng={lmLng}
+                    onChange={(lat, lng) => { setLmLat(lat); setLmLng(lng) }}
+                    resetKey={editingLandmark?.id || 'new'}
+                  />
                 </div>
                 <div className="admin-form-row">
                   <div className="admin-form-group">

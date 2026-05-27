@@ -365,3 +365,6 @@ input[type="time"].admin-input {
   color: #e87e8e; font-family: var(--font-display);
 }
 .admin-delete-btn:hover { background: rgba(233,30,44,0.18); }
+
+/* Location picker map */
+.admin-map-pin { font-size: 24px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
