@@ -46,14 +46,14 @@ function LocationPicker({ lat, lng, onChange, resetKey }) {
   const hasPin = lat && lng
   const center = hasPin ? [parseFloat(lat), parseFloat(lng)] : [19.349, -99.162]
 
-  const handleSearch = async (e) => {
-    e.preventDefault()
+  const handleSearch = async () => {
     if (!search.trim()) return
     setSearching(true)
     setNoResult(false)
     try {
+      const query = encodeURIComponent(`${search}, Ciudad de México`)
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(search)}&format=json&limit=1`,
+        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&viewbox=-99.366,19.592,-98.940,19.048&bounded=1`,
         { headers: { 'Accept-Language': 'es' } }
       )
       const data = await res.json()
@@ -74,17 +74,18 @@ function LocationPicker({ lat, lng, onChange, resetKey }) {
 
   return (
     <div className="location-picker">
-      <form className="location-search-row" onSubmit={handleSearch}>
+      <div className="location-search-row">
         <input
           className="admin-input location-search-input"
           placeholder="Search address or place…"
           value={search}
           onChange={e => { setSearch(e.target.value); setNoResult(false) }}
+          onKeyDown={e => e.key === 'Enter' && handleSearch()}
         />
-        <button type="submit" className="location-search-btn" disabled={searching}>
+        <button type="button" className="location-search-btn" disabled={searching} onClick={handleSearch}>
           {searching ? '…' : '🔍'}
         </button>
-      </form>
+      </div>
       {noResult && <p className="location-no-result">No results found</p>}
       <MapContainer key={resetKey} center={center} zoom={hasPin ? 16 : 15} style={{ height: 220, borderRadius: 10 }} zoomControl={false} attributionControl={false}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
